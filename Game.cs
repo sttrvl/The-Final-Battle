@@ -6,7 +6,7 @@ public class Game
     {
         PartyManager party = new PartyManager();
         TurnManager turn = new TurnManager(party);
-        DisplayInformation info = new DisplayInformation(party);
+        DisplayInformation info = new DisplayInformation(party, turn);
 
         List<MenuOption> menuList = new List<MenuOption>()
         {
