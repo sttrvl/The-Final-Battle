@@ -2,7 +2,7 @@
 
 public class DisplayInformation
 {
-    public DisplayInformation(PartyManager party)
+    public DisplayInformation(PartyManager party, TurnManager turn)
     {
         party.ConsumableItemUsed        += OnDisplayConsumableUsed;
         party.AttackSuccesful           += OnDisplayActionInfo;
@@ -13,8 +13,13 @@ public class DisplayInformation
         party.MonstersDefeated          += OnDisplayBattleEnd;
         party.SoulBonus                 += OnDisplaySoulBonus;
         party.CharacterPoisoned         += OnDisplayCharacterPoisoned;
+        turn.TauntMessage += OnDisplayTaunt;
     }
 
+    public void OnDisplayTaunt(TurnManager turn)
+    {
+        if (turn.SelectedCharacter.TauntText != null) Console.WriteLine(turn.SelectedCharacter.TauntText);
+    }
     public void OnDisplayCharacterPoisoned(TurnManager turn, PartyManager party) => 
         Console.WriteLine($"{turn.CurrentOpponentParty(party)[turn.CurrentTarget]} was poisoned!");
 
@@ -96,7 +101,6 @@ public class DisplayInformation
     {
         DisplayGameStatus(party, turn);
         DisplayTurnInfo(turn.SelectedCharacter);
-        DisplayOptionsMenu(turn);
     }
 
     private void DisplayPartyInfo(List<Character> characters, PartyManager party, TurnManager turn)
