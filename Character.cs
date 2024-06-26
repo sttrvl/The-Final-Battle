@@ -1,9 +1,13 @@
-﻿using System.Reflection.Metadata.Ecma335;
+﻿using System;
+using System.IO;
+using System.Reflection.Metadata.Ecma335;
+using System.Text.RegularExpressions;
 
 public abstract class Character
 {
     public Guid ID { get; } = Guid.NewGuid();
     public string Name { get; set; } = "Character";
+    public string? TauntText { get; set; }
     public int MaxHP { get; set; } = 0;
     public int CurrentHP { get; set; }
     public int SoulsXP { get; set; }
@@ -37,7 +41,7 @@ public class Computer : Character
         Name = _defaultName;
     }
 
-    public int ExecuteAction(PartyManager party, TurnManager turn)
+    public void ExecuteAction(PartyManager party, TurnManager turn)
     {
         InputManager input = new InputManager();
         int targetsCount = 0;
@@ -46,30 +50,16 @@ public class Computer : Character
 
         turn.CurrentTarget = new Random().Next(0, targetsCount);
 
-        int optionsCount = 1;
         List<int> normalAttacks = new List<int>();
         List<int> gearAttacks = new List<int>();
+        int actionNumber;
 
         List<AttackActions> availableActions = input.ActionAvailableCheck(party, turn);
-        foreach (AttackActions action in Enum.GetValues(typeof(AttackActions)))
+
+        for (int index = 0; index < availableActions.Count; index++)
         {
-            if (action == AttackActions.Nothing)
-                continue;
-
-            if (party.ActionAvailable(action, turn))
-            {
-                normalAttacks.Add(optionsCount);
-                optionsCount++;
-            }
-                
-            if (party.ActionGearAvailable(action, turn))
-            {
-                gearAttacks.Add(optionsCount);
-                optionsCount++;
-            }
-
-            if (optionsCount > 2)
-                break; // restricted it to 2 so It's only 1 or 2
+            if (party.ActionAvailable(availableActions[index], turn)) normalAttacks.Add(index);    
+            if (party.ActionGearAvailable(availableActions[index], turn)) gearAttacks.Add(index);
         }
 
         int randomNumber = new Random().Next(100);
@@ -77,20 +67,21 @@ public class Computer : Character
         if (randomNumber < 80 && gearAttacks.Count > 0)
         {
             int gearIndex = new Random().Next(gearAttacks.Count);
-            Console.WriteLine("Count" + gearAttacks[gearIndex]);
-            return gearAttacks[gearIndex];
+            actionNumber = gearAttacks[gearIndex];
         }
         else if (randomNumber < 70) // I put a high chance for computer to choose this, which excludes nothing
         {
             int attackIndex = new Random().Next(normalAttacks.Count);
-            Console.WriteLine("Count" + normalAttacks[attackIndex]);
-            return normalAttacks[attackIndex];
+            actionNumber = normalAttacks[attackIndex];
         }
         else
-        {
-            Console.WriteLine("Count" + normalAttacks[0]);
-            return normalAttacks[0];
-        }
+            actionNumber = normalAttacks[0];
+
+        // for (int i = 0; i < availableActions.Count; i++) Console.WriteLine($"{i}: {availableActions[i]} ");
+        // Console.WriteLine("DEBUG  ChosenNumber: " + actionNumber);
+        // Console.WriteLine($"DEBUG Action: {availableActions[actionNumber]}");
+
+        input.InputAction(party, turn, availableActions[actionNumber]);
     }
 
     public void SelectItem(List<Consumables> itemList, TurnManager turn)
@@ -105,22 +96,24 @@ public class Computer : Character
         turn.ConsumableSelected = itemList[turn.ConsumableSelectedNumber];
     }
 
-    public int MenuOption(List<Consumables> itemList, TurnManager turn)
+    public int MenuOption(PartyManager party, TurnManager turn, DisplayInformation info)
     {
+        InputManager input = new InputManager();
         int randomNumber = new Random().Next(100);
+        int computerChoice = 0;
 
-        if (itemList.Any(x => x is HealthPotion) && turn.SelectedCharacter.CurrentHP < turn.SelectedCharacter.MaxHP / 2)
+        if (turn.CurrentItemInventory(party).Any(x => x is Consumables) 
+            && turn.SelectedCharacter.CurrentHP < turn.SelectedCharacter.MaxHP / 2)
             if (randomNumber < 25)
-                return 2; // use item
-
+                computerChoice = 2; // use item
         if (turn.SelectedCharacter.Weapon == null && turn.CurrentGearInventory.Count >= 1)
             if (randomNumber < 50)
-                return 3; // equip gear
+                computerChoice =  3; // equip gear
+        if (randomNumber < 90)       // attack
+            computerChoice = 1;
 
-        if (randomNumber < 80) // attack
-            return 1;
-        else
-            return 0;
+        input.SelectCorrectMenu(computerChoice, party, turn, info);
+        return computerChoice;
     }
 
     public void SelectGear(TurnManager turn)
@@ -198,6 +191,7 @@ public class Skeleton : Monsters
         Name = "Skeleton";
         StandardAttack = AttackActions.BoneCrunch;
         SoulsXP = 1;
+        TauntText = "“We will repel your spineless assault!”";
     }
 }
 
@@ -212,6 +206,7 @@ public class UncodedOne : Monsters
         Name = "UncodedOne";
         StandardAttack = AttackActions.Unraveling;
         SoulsXP = 999;
+        TauntText = "<<THE UNRAVELLING OF ALL THINGS IS INEVITABLE>>";
     }
 }
 
