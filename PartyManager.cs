@@ -1,8 +1,11 @@
-﻿using System.IO;
+﻿using System.Collections.Generic;
+using System.IO;
 using static TurnManager;
 
 public class PartyManager
 {
+
+    // PartyPlayer and List can be a struct, also with both of their inventories
     public Character HeroPlayer { get; set; }
     public List<Character> HeroPartyList { get; set; } = new List<Character>();
 
@@ -20,7 +23,8 @@ public class PartyManager
         new Dagger()
     };
 
-    public List<List<Gear>> AdditionalGearLists { get; set; } = new List<List<Gear>>(); // not used but has potential to be used
+    public List<List<Gear>> AdditionalGearLists { get; set; } = new List<List<Gear>>(); 
+    // not used but has potential to be used
 
     public List<Consumables> HeroesItemInventory { get; set; } = new List<Consumables>()
     {
@@ -57,7 +61,6 @@ public class PartyManager
         return turn.CurrentPoisonedCharacters.Count > 0;
     }
 
-
     public void PoisonCharacter(TurnManager turn)
     {
         for (int index = 0; index < turn.CurrentPoisonedCharacters.Count; index++)
@@ -79,23 +82,81 @@ public class PartyManager
 
     public void SetUpParties(List<MenuOption> menu, DisplayInformation info)
     {
-        InputManager input = new InputManager();
-        (Character player1, Character player2) = input.MenuSetter(input.InputMenuOption(menu, info));
-        PartySetUpSettings(player1, player2);
+        PartySetUpSettings(menu, info);
         Console.Clear();
     }
 
-    public void PartySetUpSettings(Character player1, Character player2)
+    public record Level(Gear? gear, params Character[] characters);
+
+    // Fix: cleanup
+    public void PartySetUpSettings(List<MenuOption> menu, DisplayInformation info)
     {
-        CreateHeroParty(player1, new ShadowOctopoid(),new TrueProgrammer(), new VinFletcher());
-        CreateMonsterParty(player2, new Skeleton());
+        InputManager input = new InputManager();
+        (HeroPlayer, MonsterPlayer) = input.MenuSetter(input.InputMenuOption(menu, info));
 
+        //CreateHeroParty(HeroPlayer, new TrueProgrammer(), new VinFletcher());
+        // CreateMonsterParty(MonsterPlayer, new Skeleton(), new StoneAmarok());
+
+        List<Level> levels = LoadLevelsFromFile("Levels.txt");
         Dictionary<Character, Gear> noGear = new Dictionary<Character, Gear>();
+        //AddMonsterRound(noGear, new StoneAmarok(), new StoneAmarok());
+        // AddMonsterRound(noGear, new UncodedOne());
 
-        Dictionary<Character, Gear> gearChoice = SetUpCharacterWithGear(new Dagger(), new Skeleton(), new Skeleton());
-        AddMonsterRound(gearChoice, RetriveCharactersWithGear(gearChoice));
-        AddMonsterRound(noGear, new StoneAmarok(), new StoneAmarok());
-        AddMonsterRound(noGear, new UncodedOne());
+        foreach (Level level in levels)
+        {
+            List<Dictionary<Character, Gear?>> currentGearChoices = new List<Dictionary<Character, Gear?>>();
+            if (level.gear != null)
+                currentGearChoices.Add(SetUpCharacterWithGear(level.gear, level.characters));
+            else
+                currentGearChoices.Add(SetUpCharacterWithGear(null, level.characters));
+
+            for (int index = 0; index < currentGearChoices.Count; index++)
+            {
+                AddMonsterRound(currentGearChoices[0], RetriveCharactersWithGear(currentGearChoices[0]));
+            }
+        }
+
+    }
+
+    public List<Level> LoadLevelsFromFile(string filePath)
+    {
+        List<Level> levels = new List<Level>();
+
+        string[] levelStrings = File.ReadAllLines(filePath);
+        foreach (string levelString in levelStrings)
+        {
+            List<Character> characters = new List<Character>();
+            string[] tokens = levelString.Split(',');
+            for (int index = 1; index < tokens.Length; index++)
+                characters.Add(GetCharacter(tokens[index]));
+
+            Level level = new Level(GetGear(tokens[0]), characters.ToArray());
+            levels.Add(level);
+        }
+        return levels;
+    }
+    public Gear? GetGear(string gear)
+    {
+        return gear.ToLower() switch
+        {
+            "sword"  => new Sword(),
+            "dagger" => new Dagger(),
+            "nogear" => null,
+            _        => null
+        };
+    }
+
+    public Character GetCharacter(string character)
+    {
+        return character.ToLower() switch
+        {
+            "trueprogrammer" => new TrueProgrammer(),
+            "vinfletcher"    => new VinFletcher(),
+            "skeleton"       => new Skeleton(),
+            "stoneamarok"    => new StoneAmarok(),
+            "uncodedone"     => new UncodedOne(),
+            "shadowoctopoid" => new ShadowOctopoid()
+        };
     }
 
     public void CreateHeroParty(Character playerType, params Character[] heroes)
@@ -119,14 +180,24 @@ public class PartyManager
         return (newParty, partyType);
     }
 
+    // Fix: should separate the methods more
     public void AddMonsterRound(Dictionary<Character, Gear> gearChoices, List<Character> characterList)
     {
         foreach (Character character in characterList)
             if (gearChoices.ContainsKey(character))
                 character.Weapon = gearChoices[character];
 
-        AdditionalMonsterLists.Add(characterList);
-        AdditionalMonsterRound?.Invoke();
+        if (IsPartyEmpty(HeroPartyList))
+            foreach (Character character in characterList)
+                HeroPartyList.Add(character);
+        else if (IsPartyEmpty(MonsterPartyList))
+            foreach (Character character in characterList)
+                MonsterPartyList.Add(character);
+        else
+        {
+            AdditionalMonsterLists.Add(characterList);
+            AdditionalMonsterRound?.Invoke();
+        }
     }
 
     public void AddMonsterRound(Dictionary<Character, Gear> gearChoices, params Character[] characterArray)
@@ -141,9 +212,9 @@ public class PartyManager
         AdditionalMonsterRound?.Invoke();
     }
 
-    public Dictionary<Character, Gear> SetUpCharacterWithGear(Gear gearType, params Character[] characterType)
+    public Dictionary<Character, Gear?> SetUpCharacterWithGear(Gear? gearType, params Character[] characterType)
     {
-        Dictionary<Character, Gear> gearChoice = new Dictionary<Character, Gear>();
+        Dictionary<Character, Gear?> gearChoice = new Dictionary<Character, Gear>();
 
         foreach (Character character in characterType)
                 gearChoice.Add(character, gearType);
@@ -162,14 +233,14 @@ public class PartyManager
 
     public bool CheckForEmptyParties() => IsPartyEmpty(HeroPartyList) || IsPartyEmpty(MonsterPartyList);
 
-    public bool IsPartyEmpty(List<Character> opponentParty) => opponentParty.Count == 0;
+    public bool IsPartyEmpty(List<Character> party) => party.Count == 0;
 
     public void DamageTaken(PartyManager party, TurnManager turn)
     {
         if (AttackManager(party, turn))
         {
             CheckModifier(party, turn);
-            CheckSideEffect(party, turn);
+            CheckSideEffect(party, turn); // this is the problem, it makes any attack steal Gear
             CheckTemporaryEffect(party, turn);
             CheckSoulValue(party, turn);
 
@@ -211,14 +282,12 @@ public class PartyManager
     }
     private void CheckModifier(PartyManager party, TurnManager turn)
     {
-        if (turn.TargetHasModifier(party))
-            ManageModifier(party, turn);
+        if (turn.TargetHasModifier(party)) ManageModifier(party, turn);
     }
 
     private void CheckSideEffect(PartyManager party, TurnManager turn)
     {
-        if (turn.AttackHasSideEffect())
-            ManageSideEffect(turn, party);
+        if (turn.AttackHasSideEffect()) ManageSideEffect(turn, party);
     }
 
     private void CheckTemporaryEffect(PartyManager party, TurnManager turn)
@@ -255,16 +324,16 @@ public class PartyManager
 
     public void ManageSideEffect(TurnManager turn, PartyManager party)
     {
-        switch (turn.CurrentAttack.AttackSideEffect)
+        switch (turn.CurrentAttack.AttackSideEffect) // ok so somehow the sideeffect is always steal
         {
             case AttackSideEffects.Steal:
-                Gear weapon = turn.CurrentOpponentParty(party)[turn.CurrentTarget].Weapon;
-                Gear armor = turn.CurrentOpponentParty(party)[turn.CurrentTarget].Armor;
-                if (armor != null || weapon != null)
+                Gear opponentWeapon = turn.CurrentOpponentParty(party)[turn.CurrentTarget].Weapon;
+                Gear opponentArmor  = turn.CurrentOpponentParty(party)[turn.CurrentTarget].Armor;
+                if (opponentArmor != null || opponentWeapon != null)
                     if (ManageProbability(new Random().Next(0, 100)))
                     {
                         int choice = new Random().Next(2) == 0 ? 0 : 1;
-                        Gear gearToBeStolen = choice == 0 && armor != null ? armor : weapon;
+                        Gear gearToBeStolen = choice == 0 && opponentArmor != null ? opponentArmor : opponentWeapon;
                         StealGear(turn, party, gearToBeStolen);
                         RemoveGearFromTarget(turn, party);
                         gearStolen?.Invoke(turn);
@@ -293,10 +362,9 @@ public class PartyManager
         else
             party.MonsterGearInventory.Add(gearToBeStolen);
     }
-    private void RemoveGearFromTarget(TurnManager turn, PartyManager party)
-    {
+
+    private void RemoveGearFromTarget(TurnManager turn, PartyManager party) =>
         turn.CurrentOpponentParty(party)[turn.CurrentTarget].Weapon = null;
-    }
 
     public void UseConsumableItem(TurnManager turn) => ConsumableItemUsed.Invoke(turn);
 
@@ -402,7 +470,8 @@ public class PartyManager
 
     public bool ActionGearAvailable(AttackActions action, TurnManager turn)
     {
-        if (action == turn.SelectedCharacter.Weapon?.Execute()) return true; 
+        if (action != AttackActions.Nothing)
+            if (action == turn.SelectedCharacter.Weapon?.Execute()) return true; 
         // assuming there is no same attack for gears we are okay
         // else: add && for extra condition
 

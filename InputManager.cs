@@ -14,29 +14,15 @@ public class InputManager
         party.UseConsumableItem(turn);
     }
 
-    public void InputAction(int? action, TurnManager turn, AttackActions attack) 
+    public void InputAction(PartyManager party, TurnManager turn, AttackActions attack) 
     {
         AttackAction? resultAction = GetAttackAction(attack);
         Gear? resultGear = GetGear(turn.SelectedCharacter.Weapon);
-        switch (action)
-        {
-            case 1:
-                if (resultAction != null)
-                    RetriveAttackProperties(turn, resultAction);
-                else if (resultGear != null)
-                    RetriveAttackProperties(turn, resultGear);
-                break;
-            case 2:
-                if (resultGear != null)
-                    RetriveAttackProperties(turn, resultGear);
-                else if (resultAction != null)
-                    RetriveAttackProperties(turn, resultAction);
-                break;
-            case 0:
-            default:
-                RetriveAttackProperties(turn, new Nothing());
-                break;
-        }
+
+        if (resultGear != null && party.ActionGearAvailable(attack, turn))
+            RetriveAttackProperties(turn, resultGear);
+        if (resultAction != null && party.ActionAvailable(attack, turn))
+            RetriveAttackProperties(turn, resultAction);
     }
 
     AttackAction? GetAttackAction(AttackActions attack)
@@ -48,6 +34,7 @@ public class InputManager
             AttackActions.Unraveling => new Unraveling(),
             AttackActions.Grapple => new Grapple(),
             AttackActions.Whip => new Whip(),
+            AttackActions.Bite => new Bite(),
             _ => new Nothing()
         };
     }
@@ -86,7 +73,7 @@ public class InputManager
         int? inputTarget = opponentPartyCount == 1 ? 0 : ChooseOption("Choose a target:", opponentPartyCount);
 
         turn.CurrentTarget = (int)inputTarget;
-        InputAction(inputAction, turn, availableActions[inputAction - 1]);
+        InputAction(party, turn, availableActions[inputAction - 1]);
     }
 
     private int ChooseAction(string prompt, int maxIndex)
@@ -217,7 +204,7 @@ public class InputManager
     public void UserManager(TurnManager turn, PartyManager party, DisplayInformation info)
     {
         if (turn.CurrentPlayerIsComputer())
-            ComputerAction(party, info, turn);
+            ComputerAction(party, turn, info);
         else
             HumanAction(party, info, turn);
     }
@@ -232,7 +219,6 @@ public class InputManager
             input.AskInputAction(turn, party);
             party.DamageTaken(party, turn);
         }
-
         if (option == 2)
         {
             if (turn.CurrentItemInventory(party).Count == 0)
@@ -244,7 +230,6 @@ public class InputManager
             ChooseInputItem(turn, party);
             ManageInputItem(turn, party);
         }
-
         if (option == 3)
         {
             if (party.OptionAvailable(option, turn))
@@ -261,20 +246,14 @@ public class InputManager
         }
     }
 
-    public void ComputerAction(PartyManager party, DisplayInformation info, TurnManager turn)
+    public void ComputerAction(PartyManager party, TurnManager turn, DisplayInformation info)
     {
         Computer computer = new Computer();
-        int computerChoice = computer.MenuOption(turn.CurrentItemInventory(party), turn);
+        int computerChoice = computer.MenuOption(party, turn, info);
 
-        if (computerChoice == 0)
-        {
-            SelectCorrectMenu(computerChoice, party, turn, info);
-            InputAction(computerChoice, turn, AttackActions.Nothing); // placeholder remove later
-        }
         if (computerChoice == 1)
         {
-            int action = computer.ExecuteAction(party, turn);
-            InputAction(action, turn, AttackActions.Nothing); // placeholder we need to remove later
+            computer.ExecuteAction(party, turn);
             party.DamageTaken(party, turn);
         }
         if (computerChoice == 2)

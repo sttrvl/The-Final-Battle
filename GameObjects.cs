@@ -1,6 +1,4 @@
-﻿using System.Xml.Linq;
-
-public interface IGameObjects
+﻿public interface IGameObjects
 {
     public void Execute();
 }
@@ -68,7 +66,6 @@ public abstract class Gear : AttackAction, IInventoryObject
 
 public abstract class Weapon : Gear
 {
-
 }
 
 public class Sword : Weapon
@@ -188,7 +185,7 @@ public abstract class AttackAction : IAttackAction
     void IGameObjects.Execute() => Execute();
     public int AttackDamage { get; set; }
     public double AttackProbability { get; set; }
-    public AttackSideEffects AttackSideEffect { get; set; }
+    public AttackSideEffects? AttackSideEffect { get; set; }
     public AttackTemporaryEffects? AttackTemporaryEffect { get; set; }
 }
 

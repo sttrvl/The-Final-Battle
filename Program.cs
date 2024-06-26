@@ -43,30 +43,39 @@
 // Bug, important, current attack that misses keeps doing damage.      fixed! (took me 2 mins lol)
 // heroes drop soul                                                    idea scrapped
 
-// • Add attack side effects, which allow an attack to run other logic when an attack happens.               // done, partially
+// • Add attack side effects, which allow an attack to run other logic when an attack happens.     // done
 // Add Shadow Octopoid                                                                                       // done
 // has grapple attack, with a chance of stealing equipped gear to monster inventory.                         // done
 // Has another attack, whip, that poisons, 1 damage each turn, for three turns.                              //
 
 // we need to add logic for additional standard attack                                                       // done
 
-// • Allow characters to have temporary effects applied to them.                                             // 
-// - poison effect that deals 1 damage per turn for three turns.                                             // 
+// • Allow characters to have temporary effects applied to them.                                             // done
+// - poison effect that deals 1 damage per turn for thre turns.                                              // done
 
 // Later:
-// • Allow characters to taunt their enemies with messages
-// Uncoded One saying <<THE UNRAVELLING OF ALL THINGS IS INEVITABLE>>
-// skeleton saying, “We will repel your spineless assault!”
+// • Allow characters to taunt their enemies with messages:
+// when the character appears for the first time, during their turn:
+// Uncoded One saying <<THE UNRAVELLING OF ALL THINGS IS INEVITABLE>>           // done
+// skeleton saying, “We will repel your spineless assault!”                     // done
 
-// • Load levels from a file instead of hardcoding them in the game.
+// added the taunts                             // done
+// need a system to check for them              // done
+
+// • Load levels from a file instead of hardcoding them in the game. done
 
 // make everything as general as possible
 // Change: another approach for turns
 // Change: a way to use MenuItem idea
 
 // Bugs:
-// attack modifiers still display even though sometimes the damage is 0
-// bots are able to use nothing, this is not a big problem but makes the game a bit dull with 2 "skips"
+// bots are able to use nothing, this is not a big problem but makes the game a bit dull with 2 "skips"     done
+// After someone with gear gets attacked, geal is instantly stolen                                          done
+// attack modifiers still display even though sometimes the damage is 0  (not a problem anymore since nothing is not an option)
+// ^ should sort it out anyways, is easy
+// bite displays as nothing, it does not do any damage either                                               fixed
+
+// Next thing I want to do is making a log for things happening, currently can't see well. 
 
 // Extra:
 

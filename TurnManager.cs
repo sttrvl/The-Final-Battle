@@ -104,6 +104,9 @@ public class TurnManager
         UpdateCurrentGearInventory(party);
     }
 
+    public event Action<TurnManager> TauntMessage;
+    public List<Character> TauntedCharacters = new List<Character>();
+
     public void RunCurrentParty(TurnManager turn, DisplayInformation info, PartyManager party)
     {
         InputManager input = new InputManager();
@@ -112,18 +115,30 @@ public class TurnManager
             SelectedCharacter = CurrentCharacterList[index];
 
             info.DisplayCharacterTurnText(party, turn);
-
+            ManageTaunt(turn);
+            info.DisplayOptionsMenu(turn);
             input.UserManager(turn, party, info);
 
             party.DeathManager(party, info, turn);
 
             Console.WriteLine();
-            Thread.Sleep(500);
+            Thread.Sleep(0);
             CharacterTurnEnd?.Invoke();
             if (party.CheckForEmptyParties()) break;
         }
         PartyTurnEnd?.Invoke(turn, party);
     }
+
+    public void ManageTaunt(TurnManager turn) // we could make it so if the type of that character is in the list
+    {                                         // so ones of the same type do not taunt again, but this makes more sense
+        if (CheckTaunt())
+        {                                               
+            TauntedCharacters.Add(SelectedCharacter);
+            TauntMessage?.Invoke(turn);
+        }      
+    }
+
+    public bool CheckTaunt() => !TauntedCharacters.Contains(SelectedCharacter);
 
     public bool CurrentTargetHasGear(List<Character> opponentParty) => opponentParty[CurrentTarget].Weapon is not null;
 
