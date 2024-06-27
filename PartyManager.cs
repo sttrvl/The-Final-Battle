@@ -398,6 +398,7 @@ public class PartyManager
         } 
     }
 
+    // Fix this needs to be passed to the logger
     private void TransferDeathMonsterPartyGear(PartyManager party, TurnManager turn)
     {
         string message = "";
@@ -409,6 +410,7 @@ public class PartyManager
         Console.WriteLine($"{turn.CurrentPartyName(party)}'s obtained: {message}");
     }
 
+    // Fix: pass it to the logger
     private void TransferDeathMonsterPartyItems(PartyManager party, TurnManager turn)
     {
         string message = "";

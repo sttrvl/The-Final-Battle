@@ -70,7 +70,13 @@ public class InputManager
 
         int inputAction = ChooseAction("Choose an action:", availableActions.Count + 1);
         int opponentPartyCount = turn.CurrentOpponentParty(party).Count;
+        // Fix: separate a bit
+        if (turn.CurrentOpponentParty(party).Count > 1)
+            for (int index = 0; index < turn.CurrentOpponentParty(party).Count; index++)
+            Console.WriteLine($"{turn.CurrentOpponentParty(party)[index]}({index})");
+
         int? inputTarget = opponentPartyCount == 1 ? 0 : ChooseOption("Choose a target:", opponentPartyCount);
+
 
         turn.CurrentTarget = (int)inputTarget;
         InputAction(party, turn, availableActions[inputAction - 1]);
@@ -173,32 +179,10 @@ public class InputManager
         foreach (CharacterOptions o in Enum.GetValues(typeof(CharacterOptions)))
             options++;
 
+        Console.SetCursorPosition(1, 22);
         int? choice = ChooseOption("Choose what to do:", options);
 
-        return SelectCorrectMenu((int)choice, party, turn, info);
-    }
-
-    public int SelectCorrectMenu(int choice, PartyManager party, TurnManager turn, DisplayInformation info)
-    {
-        switch (choice)
-        {
-            case 1:
-                info.DisplayActionList(party, turn);
-                break;
-            case 2:
-                info.DisplayCurrentInventoryItems(turn.CurrentItemInventory(party));
-                break;
-            case 3:
-                if (party.OptionNotAvailable(choice, turn) == false)
-                    info.DisplayCurrentGearInventory(turn.CurrentGearInventory);
-                break;
-            case 0:
-            default:
-                turn.CurrentAttack = new Nothing();
-                Console.WriteLine($"{turn.SelectedCharacter} did {turn.CurrentAttack}. Turn was skipped!");
-                break;
-        };
-        return choice;
+        return info.DisplayCorrectMenu((int)choice, party, turn, info);
     }
 
     public void UserManager(TurnManager turn, PartyManager party, DisplayInformation info)
