@@ -66,8 +66,8 @@ public class PartyManager
     {
         for (int index = 0; index < turn.CurrentPoisonedCharacters.Count; index++)
         {
-            PoisonedCharacterInfo poisoned = turn.CurrentPoisonedCharacters[index]; // we could also pass the poison damage
-            poisoned.Character.CurrentHP -= 1;
+            PoisonedCharacterInfo poisoned = turn.CurrentPoisonedCharacters[index]; 
+            poisoned.Character.CurrentHP -= 1; // we could also pass the poison damage
             poisoned.Character.CurrentHP = poisoned.Character.HealthClamp();
             poisoned.TurnsPoisoned -= 1;
             turn.CurrentPoisonedCharacters[index] = poisoned;
