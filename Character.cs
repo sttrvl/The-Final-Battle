@@ -111,7 +111,7 @@ public class Computer : Character
         if (randomNumber < 90)       // attack
             computerChoice = 1;
 
-        input.SelectCorrectMenu(computerChoice, party, turn, info);
+        info.DisplayCorrectMenu(computerChoice, party, turn, info);
         return computerChoice;
     }
 
@@ -174,12 +174,12 @@ public class MylaraAndSkorin : Hero // consider separating these
     }
 }
 
-public abstract class Monsters : Character
+public abstract class Monster : Character
 {
 
 }
 
-public class Skeleton : Monsters
+public class Skeleton : Monster
 {
     public int DefaultMaxHP { get; } = 5;
 
@@ -194,7 +194,7 @@ public class Skeleton : Monsters
     }
 }
 
-public class UncodedOne : Monsters
+public class UncodedOne : Monster
 {
     public int DefaultMaxHP { get; } = 15;
 
@@ -209,7 +209,7 @@ public class UncodedOne : Monsters
     }
 }
 
-public class StoneAmarok : Monsters
+public class StoneAmarok : Monster
 {
     int DefaultMaxHP { get; } = 4;
 
@@ -225,7 +225,7 @@ public class StoneAmarok : Monsters
     }
 }
 
-public class ShadowOctopoid : Monsters
+public class ShadowOctopoid : Monster
 {
     int DefaultMaxHP { get; } = 15;
     public ShadowOctopoid()
