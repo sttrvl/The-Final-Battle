@@ -116,18 +116,15 @@ public class TurnManager
         for (int index = 0; index < CurrentCharacterList.Count; index++)
         {
             SelectedCharacter = CurrentCharacterList[index];
-
+            // Fix: separate way more DisplayCharacterTurnNext, might rename
             info.DisplayCharacterTurnText(party, turn);
-            ManageTaunt(turn);
-            info.DisplayOptionsMenu(turn);
             input.UserManager(turn, party, info);
 
             party.DeathManager(party, info, turn);
 
-            Console.WriteLine();
-            Thread.Sleep(1000);
             CharacterTurnEnd?.Invoke();
             if (party.CheckForEmptyParties()) break;
+            Thread.Sleep(1000);
         }
         PartyTurnEnd?.Invoke(turn, party);
     }
