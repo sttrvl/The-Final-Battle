@@ -39,7 +39,7 @@ public class InputManager
         };
     }
 
-    Gear? GetGear(Gear weapon)
+    Gear? GetGear(Gear? weapon)
     {
         return weapon switch
         {

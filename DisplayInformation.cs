@@ -88,7 +88,7 @@ public class DisplayInformation
     {
         string modifierProperty = turn.CurrentTargetDefensiveModifier.Value < 0 ? "reduced" : "increased";
 
-        DefensiveAttackModifier targetModifier = turn.CurrentOpponentParty(party)[turn.CurrentTarget].DefensiveAttackModifier;
+        DefensiveAttackModifier? targetModifier = turn.CurrentOpponentParty(party)[turn.CurrentTarget].DefensiveAttackModifier;
         WriteWithColor($"{targetModifier} ", ConsoleColor.DarkRed);
         Console.WriteLine($"{modifierProperty} the attack damage by {Math.Abs(turn.CurrentTargetDefensiveModifier.Value)} point/s.");
     }

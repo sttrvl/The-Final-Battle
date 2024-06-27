@@ -13,12 +13,12 @@ public class PartyManager
     public List<Character> MonsterPartyList { get; set; } = new List<Character>();
     public List<List<Character>> AdditionalMonsterLists { get; set; } = new List<List<Character>>();
 
-    public List<Gear> HeroGearInventory = new List<Gear>()
+    public List<Gear?> HeroGearInventory = new List<Gear?>()
     {
         new BinaryHelm()
     };
 
-    public List<Gear> MonsterGearInventory = new List<Gear>()
+    public List<Gear?> MonsterGearInventory = new List<Gear?>()
     {
         new Dagger()
     };
@@ -179,7 +179,7 @@ public class PartyManager
         return (newParty, partyType);
     }
 
-    public void AddMonsterRound(Dictionary<Character, Gear> gearChoices, List<Character> characterList)
+    public void AddMonsterRound(Dictionary<Character, Gear?> gearChoices, List<Character> characterList)
     {
         foreach (Character character in characterList)
             if (gearChoices.ContainsKey(character))
@@ -191,7 +191,7 @@ public class PartyManager
 
     public Dictionary<Character, Gear?> SetUpCharacterWithGear(Gear? gearType, params Character[] characterType)
     {
-        Dictionary<Character, Gear?> gearChoice = new Dictionary<Character, Gear>();
+        Dictionary<Character, Gear?> gearChoice = new Dictionary<Character, Gear?>();
 
         foreach (Character character in characterType)
                 gearChoice.Add(character, gearType);
@@ -199,7 +199,7 @@ public class PartyManager
         return gearChoice;
     }
 
-    private List<Character> RetriveCharactersWithGear(Dictionary<Character, Gear> gearChoice)
+    private List<Character> RetriveCharactersWithGear(Dictionary<Character, Gear?> gearChoice)
     {
         List<Character> savedCharacters = new List<Character>();
         foreach (Character character in gearChoice.Keys)
@@ -301,12 +301,12 @@ public class PartyManager
     public void ManageOffensiveModifier(PartyManager party, TurnManager turn)
     {
         List<OffensiveAttackModifier?> modifier = new List<OffensiveAttackModifier?>();
-        if (turn.SelectedCharacter.Weapon.OffensiveAttackModifier != null)
+        if (turn.SelectedCharacter?.Weapon?.OffensiveAttackModifier != null)
             modifier.Add(turn.SelectedCharacter.Weapon.OffensiveAttackModifier);
-        if (turn.SelectedCharacter.Armor.OffensiveAttackModifier != null)
+        if (turn.SelectedCharacter?.Armor?.OffensiveAttackModifier != null)
             modifier.Add(turn.SelectedCharacter.Armor.OffensiveAttackModifier);
 
-        foreach (OffensiveAttackModifier offensive in modifier)
+        foreach (OffensiveAttackModifier? offensive in modifier)
         {
             switch (offensive)
             {
@@ -326,16 +326,16 @@ public class PartyManager
 
     public void ManageSideEffect(TurnManager turn, PartyManager party)
     {
-        switch (turn.CurrentAttack.AttackSideEffect) // ok so somehow the sideeffect is always steal
+        switch (turn.CurrentAttack.AttackSideEffect)
         {
             case AttackSideEffects.Steal:
-                Gear opponentWeapon = turn.CurrentOpponentParty(party)[turn.CurrentTarget].Weapon;
-                Gear opponentArmor  = turn.CurrentOpponentParty(party)[turn.CurrentTarget].Armor;
+                Gear? opponentWeapon = turn.CurrentOpponentParty(party)[turn.CurrentTarget].Weapon;
+                Gear? opponentArmor  = turn.CurrentOpponentParty(party)[turn.CurrentTarget].Armor;
                 if (opponentArmor != null || opponentWeapon != null)
                     if (ManageProbability(new Random().Next(0, 100)))
                     {
                         int choice = new Random().Next(2) == 0 ? 0 : 1;
-                        Gear gearToBeStolen = choice == 0 && opponentArmor != null ? opponentArmor : opponentWeapon;
+                        Gear? gearToBeStolen = choice == 0 && opponentArmor != null ? opponentArmor : opponentWeapon;
                         StealGear(turn, party, gearToBeStolen);
                         RemoveGearFromTarget(turn, party);
                         gearStolen?.Invoke(turn);
@@ -357,7 +357,7 @@ public class PartyManager
         }
     }
 
-    private void StealGear(TurnManager turn, PartyManager party, Gear gearToBeStolen)
+    private void StealGear(TurnManager turn, PartyManager party, Gear? gearToBeStolen)
     {
         if (turn.CurrentParty(party) == party.HeroPartyList)
             party.HeroGearInventory.Add(gearToBeStolen);
@@ -401,7 +401,7 @@ public class PartyManager
     private void TransferDeathMonsterPartyGear(PartyManager party, TurnManager turn)
     {
         string message = "";
-        foreach (Gear gear in MonsterGearInventory)
+        foreach (Gear? gear in MonsterGearInventory)
         {
             HeroGearInventory.Add(gear);
             message += $"{gear} ";

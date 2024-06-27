@@ -7,7 +7,7 @@ public class TurnManager
     private int CharacterNumber { get; set; } = 0;
     public Character SelectedPlayerType { get; set; }
     public List<Character> CurrentCharacterList { get; set; } = new List<Character>();
-    public Character? SelectedCharacter { get; set; }
+    public Character SelectedCharacter { get; set; }
     public int CurrentTarget { get; set; }
     public AttackActions SelectedAttack { get; set; }
     public AttackAction CurrentAttack { get; set; }
@@ -18,7 +18,7 @@ public class TurnManager
     public int ConsumableSelectedNumber { get; set; }
     public int CurrentHealValue;
 
-    public List<Gear> CurrentGearInventory = new List<Gear>();
+    public List<Gear?> CurrentGearInventory = new List<Gear?>();
     public DefensiveAttackModifier CurrentTargetDefensiveModifier { get; set; }
     public OffensiveAttackModifier CurrentOffensiveModifier { get; set; }
     public List<PoisonedCharacterInfo> CurrentPoisonedCharacters { get; set; } = new List<PoisonedCharacterInfo>();

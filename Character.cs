@@ -102,10 +102,10 @@ public class Computer : Character
         int computerChoice = 0;
 
         if (turn.CurrentItemInventory(party).Any(x => x is Consumables) 
-            && turn.SelectedCharacter.CurrentHP < turn.SelectedCharacter.MaxHP / 2)
+            && turn.SelectedCharacter?.CurrentHP < turn.SelectedCharacter?.MaxHP / 2)
             if (randomNumber < 25)
                 computerChoice = 2; // use item
-        if (turn.SelectedCharacter.Weapon == null && turn.CurrentGearInventory.Count >= 1)
+        if (turn.SelectedCharacter?.Weapon == null && turn.CurrentGearInventory.Count >= 1)
             if (randomNumber < 50)
                 computerChoice =  3; // equip gear
         if (randomNumber < 90)       // attack
