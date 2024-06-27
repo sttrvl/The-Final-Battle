@@ -41,7 +41,8 @@ public class PartyManager
     public event Action<PartyManager, TurnManager> AttackSuccesful;
     public event Action<TurnManager> AttackMissed;
     public event Action<PartyManager, TurnManager> AttackInfo;
-    public event Action<PartyManager, TurnManager> ModifierApplied;
+    public event Action<PartyManager, TurnManager> DefensiveModifierApplied;
+    public event Action<PartyManager, TurnManager> OffensiveModifierApplied;
     public event Action<PartyManager, TurnManager> MonstersDefeated;
     public event Action<PartyManager, TurnManager> DeathOpponentGearObtained;
 
@@ -88,14 +89,13 @@ public class PartyManager
 
     public record Level(Gear? gear, params Character[] characters);
 
-    // Fix: cleanup
     public void PartySetUpSettings(List<MenuOption> menu, DisplayInformation info)
     {
         InputManager input = new InputManager();
         (HeroPlayer, MonsterPlayer) = input.MenuSetter(input.InputMenuOption(menu, info));
 
-        //CreateHeroParty(HeroPlayer, new TrueProgrammer(), new VinFletcher());
-        // CreateMonsterParty(MonsterPlayer, new Skeleton(), new StoneAmarok());
+        CreateHeroParty(HeroPlayer, new TrueProgrammer(), new VinFletcher());
+        CreateMonsterParty(MonsterPlayer, new Skeleton(), new StoneAmarok());
 
         List<Level> levels = LoadLevelsFromFile("Levels.txt");
         Dictionary<Character, Gear> noGear = new Dictionary<Character, Gear>();
@@ -115,7 +115,6 @@ public class PartyManager
                 AddMonsterRound(currentGearChoices[0], RetriveCharactersWithGear(currentGearChoices[0]));
             }
         }
-
     }
 
     public List<Level> LoadLevelsFromFile(string filePath)
@@ -180,30 +179,8 @@ public class PartyManager
         return (newParty, partyType);
     }
 
-    // Fix: should separate the methods more
     public void AddMonsterRound(Dictionary<Character, Gear> gearChoices, List<Character> characterList)
     {
-        foreach (Character character in characterList)
-            if (gearChoices.ContainsKey(character))
-                character.Weapon = gearChoices[character];
-
-        if (IsPartyEmpty(HeroPartyList))
-            foreach (Character character in characterList)
-                HeroPartyList.Add(character);
-        else if (IsPartyEmpty(MonsterPartyList))
-            foreach (Character character in characterList)
-                MonsterPartyList.Add(character);
-        else
-        {
-            AdditionalMonsterLists.Add(characterList);
-            AdditionalMonsterRound?.Invoke();
-        }
-    }
-
-    public void AddMonsterRound(Dictionary<Character, Gear> gearChoices, params Character[] characterArray)
-    {
-        List<Character> characterList = characterArray.ToList();
-
         foreach (Character character in characterList)
             if (gearChoices.ContainsKey(character))
                 character.Weapon = gearChoices[character];
@@ -240,7 +217,7 @@ public class PartyManager
         if (AttackManager(party, turn))
         {
             CheckModifier(party, turn);
-            CheckSideEffect(party, turn); // this is the problem, it makes any attack steal Gear
+            CheckSideEffect(party, turn);
             CheckTemporaryEffect(party, turn);
             CheckSoulValue(party, turn);
 
@@ -282,7 +259,8 @@ public class PartyManager
     }
     private void CheckModifier(PartyManager party, TurnManager turn)
     {
-        if (turn.TargetHasModifier(party)) ManageModifier(party, turn);
+        if (turn.TargetHasDefensiveModifier(party)) ManageDefensiveModifier(party, turn);
+        if (turn.TargetHasOffensiveModifier(turn)) ManageOffensiveModifier(party, turn); 
     }
 
     private void CheckSideEffect(PartyManager party, TurnManager turn)
@@ -300,23 +278,47 @@ public class PartyManager
 
     private bool ManageProbability(double probability) => new Random().Next(100) < probability * 100;
 
-    public void ManageModifier(PartyManager party, TurnManager turn)
+    public void ManageDefensiveModifier(PartyManager party, TurnManager turn)
     {
         switch (turn.CurrentOpponentParty(party)[turn.CurrentTarget].DefensiveAttackModifier)
         {
             case StoneArmor:
-                turn.CurrentTargetModifier = new StoneArmor();
-                turn.CurrentDamage += turn.CurrentTargetModifier.Value;
-                ModifierApplied.Invoke(party, turn);
+                turn.CurrentTargetDefensiveModifier = new StoneArmor();
+                turn.CurrentDamage += turn.CurrentTargetDefensiveModifier.Value;
+                DefensiveModifierApplied.Invoke(party, turn);
                 break;
             case ObjectSight when turn.CurrentAttack.AttackType == AttackTypes.Decoding:
-                turn.CurrentTargetModifier = new ObjectSight();
-                turn.CurrentDamage += turn.CurrentTargetModifier.Value;
-                ModifierApplied.Invoke(party, turn);
+                turn.CurrentTargetDefensiveModifier = new ObjectSight();
+                turn.CurrentDamage += turn.CurrentTargetDefensiveModifier.Value;
+                DefensiveModifierApplied.Invoke(party, turn);
                 break;
             default:
 
                 break;
+        }
+    }
+
+    public void ManageOffensiveModifier(PartyManager party, TurnManager turn)
+    {
+        List<OffensiveAttackModifier?> modifier = new List<OffensiveAttackModifier?>();
+        if (turn.SelectedCharacter.Weapon.OffensiveAttackModifier != null)
+            modifier.Add(turn.SelectedCharacter.Weapon.OffensiveAttackModifier);
+        if (turn.SelectedCharacter.Armor.OffensiveAttackModifier != null)
+            modifier.Add(turn.SelectedCharacter.Armor.OffensiveAttackModifier);
+
+        foreach (OffensiveAttackModifier offensive in modifier)
+        {
+            switch (offensive)
+            {
+                case Binary:
+                    turn.CurrentOffensiveModifier = new Binary();
+                    turn.CurrentDamage += turn.CurrentOffensiveModifier.Value;
+                    OffensiveModifierApplied.Invoke(party, turn);
+                    break;
+                default:
+
+                    break;
+            }
         }
     }
 
@@ -466,7 +468,8 @@ public class PartyManager
 
     public bool OptionAvailable(int choice, TurnManager turn) => !OptionNotAvailable(choice, turn);
 
-    public bool OptionNotAvailable(int? choice, TurnManager turn) => choice == 3 && turn.CurrentGearInventory.Count == 0;
+    public bool OptionNotAvailable(int? choice, TurnManager turn) => 
+        choice == 3 && turn.CurrentGearInventory.Count == 0;
 
     public bool ActionGearAvailable(AttackActions action, TurnManager turn)
     {

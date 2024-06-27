@@ -21,7 +21,6 @@ public abstract class Character
     public AttackActions AdditionalStandardAttack = AttackActions.Nothing;
 
     public DefensiveAttackModifier? DefensiveAttackModifier;
-    public OffensiveAttackModifiers? OffensiveAttackModifier;
 
     public Gear? Weapon;
     public Gear? Armor;

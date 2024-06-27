@@ -62,6 +62,7 @@ public abstract class Gear : AttackAction, IInventoryObject
 {
     public int DefensiveValue;
     public int OffensiveValue;
+    public OffensiveAttackModifier? OffensiveAttackModifier;
 }
 
 public abstract class Weapon : Gear
@@ -137,6 +138,7 @@ public class BinaryHelm : Armor
     {
         Name = "Binary Helm";
         DefensiveValue = 1;
+        OffensiveAttackModifier = new Binary();
     }
 }
 
@@ -144,7 +146,7 @@ public abstract class AttackModifier<T> : IAction
 {
     public string Name { get; set; } = "None";
     public int Value;
-    public abstract DefensiveAttackModifiers Execute();
+    public abstract T Execute();
     void IGameObjects.Execute() => Execute();
 }
 
@@ -173,8 +175,19 @@ public class ObjectSight : DefensiveAttackModifier
     }
 }
 
-public abstract class OffensiveAttackModifier : AttackModifier<DefensiveAttackModifiers>
+public abstract class OffensiveAttackModifier : AttackModifier<OffensiveAttackModifiers>
 {
+}
+
+public class Binary : OffensiveAttackModifier
+{
+    public override OffensiveAttackModifiers Execute() => OffensiveAttackModifiers.Binary;
+
+    public Binary()
+    {
+        Name = "Binary";
+        Value = new Random().Next(1);
+    }
 }
 
 public abstract class AttackAction : IAttackAction
@@ -374,9 +387,7 @@ public enum DefensiveAttackModifiers
 
 public enum OffensiveAttackModifiers
 {
-    StoneArmor,
-    ObjectSight
-
+    Binary
 }
 
 public enum AttackTypes

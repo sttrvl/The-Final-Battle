@@ -1,6 +1,4 @@
-﻿using System.IO;
-
-public class Game
+﻿public class Game
 {
     public void Run()
     {

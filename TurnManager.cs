@@ -1,13 +1,13 @@
 ﻿using System.IO;
 
-public class TurnManager 
+public class TurnManager
 {
     public int Round { get; private set; } = 0;
     public int NumberBattleRounds { get; private set; } = 0;
     private int CharacterNumber { get; set; } = 0;
     public Character SelectedPlayerType { get; set; }
     public List<Character> CurrentCharacterList { get; set; } = new List<Character>();
-    public Character SelectedCharacter { get; set; }
+    public Character? SelectedCharacter { get; set; }
     public int CurrentTarget { get; set; }
     public AttackActions SelectedAttack { get; set; }
     public AttackAction CurrentAttack { get; set; }
@@ -19,7 +19,8 @@ public class TurnManager
     public int CurrentHealValue;
 
     public List<Gear> CurrentGearInventory = new List<Gear>();
-    public DefensiveAttackModifier CurrentTargetModifier { get; set; }
+    public DefensiveAttackModifier CurrentTargetDefensiveModifier { get; set; }
+    public OffensiveAttackModifier CurrentOffensiveModifier { get; set; }
     public List<PoisonedCharacterInfo> CurrentPoisonedCharacters { get; set; } = new List<PoisonedCharacterInfo>();
     public struct PoisonedCharacterInfo
     {
@@ -57,7 +58,7 @@ public class TurnManager
             }
     }
 
-    public void UpdateCharacterNumber() => 
+    public void UpdateCharacterNumber() =>
         CharacterNumber = CharacterNumber < CurrentCharacterList.Count ? CharacterNumber + CharacterNumber++ : 0;
 
     public void NextBattle() => NumberBattleRounds++;
@@ -66,7 +67,7 @@ public class TurnManager
 
     public void CurrentSelectedCharacter(PartyManager party)
     {
-        CharacterNumber = CharacterNumber < CurrentCharacterList.Count ?  CharacterNumber : 0;
+        CharacterNumber = CharacterNumber < CurrentCharacterList.Count ? CharacterNumber : 0;
         SelectedCharacter = CurrentCharacterList[CharacterNumber];
     }
 
@@ -79,8 +80,10 @@ public class TurnManager
     public string CurrentPartyName(PartyManager party) => CurrentCharacterList == party.HeroPartyList ? "Hero" : "Monster";
     public string OpponentPartyName(PartyManager party) => CurrentPartyName(party) == "Hero" ? "Monster" : "Hero";
 
-    public bool TargetHasModifier(PartyManager party) =>
+    public bool TargetHasDefensiveModifier(PartyManager party) =>
         CurrentOpponentParty(party)[CurrentTarget].DefensiveAttackModifier != null;
+
+    public bool TargetHasOffensiveModifier(TurnManager turn) => turn.SelectedCharacter?.Armor?.OffensiveAttackModifier  != null ||turn.SelectedCharacter?.Weapon?.OffensiveAttackModifier != null;
 
     public bool AttackHasSideEffect() => CurrentAttack.AttackSideEffect != null;
 
@@ -122,7 +125,7 @@ public class TurnManager
             party.DeathManager(party, info, turn);
 
             Console.WriteLine();
-            Thread.Sleep(0);
+            Thread.Sleep(1000);
             CharacterTurnEnd?.Invoke();
             if (party.CheckForEmptyParties()) break;
         }

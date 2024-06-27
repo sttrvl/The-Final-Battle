@@ -7,33 +7,56 @@ public class DisplayInformation
         party.ConsumableItemUsed        += OnDisplayConsumableUsed;
         party.AttackSuccesful           += OnDisplayActionInfo;
         party.AttackInfo                += OnDisplayDamageAndRemainingHealth;
-        party.ModifierApplied           += OnDisplayModifierEffects;
+        party.DefensiveModifierApplied  += OnDisplayDefensiveModifierEffects;
         party.AttackMissed              += OnDisplayMissedAttack;
         party.DeathOpponentGearObtained += OnDisplayGearObtained;
         party.MonstersDefeated          += OnDisplayBattleEnd;
         party.SoulBonus                 += OnDisplaySoulBonus;
         party.CharacterPoisoned         += OnDisplayCharacterPoisoned;
-        turn.TauntMessage += OnDisplayTaunt;
+        turn.TauntMessage               += OnDisplayTaunt;
+        party.OffensiveModifierApplied  += OnDisplayOffensiveModifierEffects;
+    }
+
+    public void WriteWithColor(string prompt, ConsoleColor color)
+    {
+        Console.ForegroundColor = color;
+        Console.Write($"{prompt}");
+        Console.ResetColor();
     }
 
     public void OnDisplayTaunt(TurnManager turn)
     {
         if (turn.SelectedCharacter.TauntText != null) Console.WriteLine(turn.SelectedCharacter.TauntText);
     }
-    public void OnDisplayCharacterPoisoned(TurnManager turn, PartyManager party) => 
-        Console.WriteLine($"{turn.CurrentOpponentParty(party)[turn.CurrentTarget]} was poisoned!");
 
-    public void OnDisplayConsumableUsed(TurnManager turn) =>
-    Console.WriteLine($"{turn.ConsumableSelected} was consumed by {turn.SelectedCharacter}");
+    public void OnDisplayCharacterPoisoned(TurnManager turn, PartyManager party)
+    {
+        WriteWithColor($"{turn.CurrentOpponentParty(party)[turn.CurrentTarget]}", ConsoleColor.DarkGreen);
+        Console.WriteLine($"was poisoned!");
+    }
+
+    public void OnDisplayConsumableUsed(TurnManager turn)
+    {
+        WriteWithColor($"{turn.ConsumableSelected} ", ConsoleColor.DarkMagenta);
+        Console.Write("was consumed by ");
+        WriteWithColor($"{turn.SelectedCharacter}\n", ConsoleColor.Yellow);
+    }
 
     public void OnDisplaySoulBonus(TurnManager turn)
     {
-        Console.WriteLine($"{turn.SelectedCharacter} felt an uncanny energy arise within them, they have been granted +1 damage!");
+        WriteWithColor($"{turn.SelectedCharacter}", ConsoleColor.Yellow);
+        Console.WriteLine($"felt an uncanny energy arise within them, they have been granted +1 damage!");
     }
+
     public void OnDisplayActionInfo(PartyManager party, TurnManager turn)
     {
         Character currentTarget = turn.CurrentOpponentParty(party)[turn.CurrentTarget];
-        Console.WriteLine($"{turn.SelectedCharacter} used {turn.CurrentAttack.Name} on {currentTarget}");
+        WriteWithColor($"{ turn.SelectedCharacter} ", ConsoleColor.Yellow);
+        Console.Write($"used ");
+        WriteWithColor($"{turn.CurrentAttack.Name} ", ConsoleColor.Red);
+        Console.Write("on ");
+        WriteWithColor($"{currentTarget}", ConsoleColor.DarkRed);
+        Console.Write(". ");
     }
 
     public void OnDisplayDamageAndRemainingHealth(PartyManager party, TurnManager turn)
@@ -44,22 +67,38 @@ public class DisplayInformation
 
     public void DisplayDamageDealt(TurnManager turn, PartyManager party)
     {
-        Console.WriteLine($"{turn.CurrentAttack} dealts {turn.CurrentDamage} damage to {turn.CurrentOpponentParty(party)[turn.CurrentTarget]} ");
+        WriteWithColor($"{turn.CurrentAttack} ", ConsoleColor.DarkRed);
+        Console.Write($"deals ");
+        WriteWithColor($"{turn.CurrentDamage} ", ConsoleColor.Red);
+        Console.Write("damage to ");
+        WriteWithColor($"{turn.CurrentOpponentParty(party)[turn.CurrentTarget]}", ConsoleColor.DarkRed);
+        Console.Write(". ");
     }
 
     public void DisplayTargetCurrentHP(TurnManager turn, PartyManager party)
     {
         int target = turn.CurrentTarget;
         List<Character> opponent = turn.CurrentOpponentParty(party);
-        Console.WriteLine($"{opponent[target]} is now at {opponent[target].CurrentHP}/{opponent[target].MaxHP} HP. ");
+        WriteWithColor($"{opponent[target]} ", ConsoleColor.DarkRed);
+        Console.Write($"is now at ");
+        Console.Write($"{opponent[target].CurrentHP}/{opponent[target].MaxHP} HP.");
     }
 
-    public void OnDisplayModifierEffects(PartyManager party, TurnManager turn)
+    public void OnDisplayDefensiveModifierEffects(PartyManager party, TurnManager turn)
     {
-        string modifierProperty = turn.CurrentTargetModifier.Value < 0 ? "reduced" : "increased";
+        string modifierProperty = turn.CurrentTargetDefensiveModifier.Value < 0 ? "reduced" : "increased";
 
         DefensiveAttackModifier targetModifier = turn.CurrentOpponentParty(party)[turn.CurrentTarget].DefensiveAttackModifier;
-        Console.WriteLine($"{targetModifier} {modifierProperty} the attack damage by {Math.Abs(turn.CurrentTargetModifier.Value)} point.");
+        WriteWithColor($"{targetModifier} ", ConsoleColor.DarkRed);
+        Console.WriteLine($"{modifierProperty} the attack damage by {Math.Abs(turn.CurrentTargetDefensiveModifier.Value)} point/s.");
+    }
+
+    public void OnDisplayOffensiveModifierEffects(PartyManager party, TurnManager turn)
+    {
+        string modifierProperty = turn.CurrentOffensiveModifier.Value < 0 ? "reduced" : "increased";
+
+        WriteWithColor($"{turn.CurrentOffensiveModifier} ", ConsoleColor.DarkRed);
+        Console.WriteLine($"{modifierProperty} the attack damage by {Math.Abs(turn.CurrentOffensiveModifier.Value)} point/s.");
     }
 
     public void OnDisplayMissedAttack(TurnManager turn) => Console.WriteLine($"{turn.SelectedCharacter} missed!");
@@ -68,7 +107,9 @@ public class DisplayInformation
     {
         string currentPartyName = turn.CurrentPartyName(party);
         Gear gear = turn.CurrentOpponentParty(party)[turn.CurrentTarget].Weapon!;
-        Console.Write ($" - {currentPartyName}'s obtained {gear.Name} in their inventory!");
+        Console.Write($" - {currentPartyName}'s ");
+        WriteWithColor("obtained", ConsoleColor.Green);
+        Console.Write("in their inventory!");
     }
 
     public void OnDisplayBattleEnd(PartyManager party, TurnManager turn)
@@ -84,7 +125,6 @@ public class DisplayInformation
             Console.WriteLine($"{currentName}'s won!, {opponentName}'s lost. Uncoded One’s forces have prevailed.");
     }
 
-    // Fix: rework visuals
     public void DisplayGameStatus(PartyManager party, TurnManager turn)
     {
         Console.WriteLine($"{new string(' ', 56)} BATTLE {new string(' ', 56)}");
@@ -242,9 +282,9 @@ public class DisplayInformation
             Console.ForegroundColor = ConsoleColor.Green;
             healthBar = "======";
         }
-
         return $"{healthBar} {symbol}";
     }
+
     public void DisplayCharacterDeath(List<Character> partyList, int target) => Console.WriteLine($"{partyList[target]} has died.");
 
     public void DisplayMenu(List<MenuOption> menu)
@@ -320,7 +360,7 @@ public class DisplayInformation
     }
 
     private void DisplayGearInInventory(List<Gear> currentGearInventory)
-    { // This has potential for re-use but I'm not sure how I would go from Consumables to Gear or any other (w/o object)
+    { // This has potential for re-use but I'm not sure how I would go from Consumables to Gear or any other (w/o object), maybe structuring it differently
         int count = 0;
         foreach (Gear gear in currentGearInventory)
         {
@@ -332,8 +372,17 @@ public class DisplayInformation
     public void DisplayGearEquipped(TurnManager turn)
     {
         if (turn.CurrentGearInventory[turn.SelectedGear] is Armor)
-            Console.WriteLine($"{turn.SelectedCharacter} equipped {turn.SelectedCharacter.Armor} ");
+        {
+            WriteWithColor($"{turn.SelectedCharacter} ", ConsoleColor.Yellow);
+            Console.Write($"equipped ");
+            WriteWithColor($"{turn.SelectedCharacter.Armor} ", ConsoleColor.Magenta);
+        }
+
         if (turn.CurrentGearInventory[turn.SelectedGear] is Weapon)
-            Console.WriteLine($"{turn.SelectedCharacter} equipped {turn.SelectedCharacter.Weapon} ");
-    }
+        {
+            WriteWithColor($"{turn.SelectedCharacter} ", ConsoleColor.Yellow);
+            Console.Write($"equipped ");
+            WriteWithColor($"{turn.SelectedCharacter.Weapon} ", ConsoleColor.Magenta);
+        }
+    } // reuse potential
 }
