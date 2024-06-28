@@ -18,10 +18,39 @@ public class DisplayInformation
         party.CharacterPoisoned         += OnDisplayCharacterPoisoned;
         turn.TauntMessage               += OnDisplayTaunt;
         party.OffensiveModifierApplied  += OnDisplayOffensiveModifierEffects;
+        party.ItemsObtained             += OnDisplayItemsObtained;
+        party.GearObtained              += OnDisplayGearObtained;
         TurnSkipped                     += OnDisplayTurnSkipped;
     }
 
     public event Action<TurnManager> TurnSkipped;
+
+    public void OnDisplayItemsObtained(TurnManager turn, PartyManager party)
+    {
+        string message = "";
+        foreach (Consumables item in party.MonstersItemInventory)
+            message += $"{item} ";
+
+        List<ColoredText> colorText = new List<ColoredText>();
+        colorText.Add(new ColoredText($"{turn.CurrentPartyName(party)}'s", ConsoleColor.Blue));
+        colorText.Add(new ColoredText($" obtained: ", ConsoleColor.Green));
+        colorText.Add(new ColoredText($"{message}", ConsoleColor.Magenta));
+        LogMessages.Add(colorText);
+    }
+
+    public void OnDisplayGearObtained(TurnManager turn, PartyManager party)
+    {
+        string message = "";
+        foreach (Gear gear in party.MonsterGearInventory)
+            message += $"{gear} ";
+
+        List<ColoredText> colorText = new List<ColoredText>();
+        colorText.Add(new ColoredText($"{turn.CurrentPartyName(party)}'s", ConsoleColor.Blue));
+        colorText.Add(new ColoredText($" obtained: ", ConsoleColor.Green));
+        colorText.Add(new ColoredText($"{message}", ConsoleColor.Magenta));
+        LogMessages.Add(colorText);
+    }
+
 
     public int DisplayCorrectMenu(int choice, PartyManager party, TurnManager turn, DisplayInformation info)
     {
@@ -208,7 +237,7 @@ public class DisplayInformation
         }
     }
 
-    List<List<ColoredText>> LogMessages = new List<List<ColoredText>>();
+    public List<List<ColoredText>> LogMessages = new List<List<ColoredText>>();
     public void DisplayLogMessages()
     {
         PrintColoredTextLines(LogMessages);
@@ -231,7 +260,7 @@ public class DisplayInformation
             column++;
             row = 61;
 
-            if (lines.Count > 14) lines.RemoveAt(0);
+            if (lines.Count > 25) lines.RemoveAt(0);
         }
         Console.ResetColor();
     }
@@ -265,12 +294,12 @@ public class DisplayInformation
 
     public void DisplayGameStatus(PartyManager party, TurnManager turn)
     {
-        Console.WriteLine($"{new string('═', 60)}");
+        Console.SetCursorPosition(0, 1);
         DisplayPartyInfo(party.HeroPartyList, party, turn);
-        Console.WriteLine($"{new string('═', 60)}");
-        Console.WriteLine($"{new string(' ', 27)} VS {new string(' ', 27)}");
+        Console.SetCursorPosition(0, 10);
         Console.WriteLine($"{new string('═', 60)}");
         DisplayPartyInfo(party.MonsterPartyList, party, turn);
+        Console.SetCursorPosition(0, 20);
         Console.WriteLine($"{new string('═', 60)} \n");
         DisplayLogMessages();
     }
@@ -347,7 +376,7 @@ public class DisplayInformation
         if (character is Hero)
         {
             if (character.SoulsValue >= 3)
-                soulBar += "|∙|∙|∙| *Bonus Ready*";
+                soulBar += "|∙|∙|∙|";
             else if (character.SoulsValue >= 2)
                 soulBar += "|∙|∙| |";
             else if (character.SoulsValue >= 1)
