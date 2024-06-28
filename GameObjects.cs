@@ -265,7 +265,7 @@ public class Grapple : AttackAction
     public Grapple()
     {
         AttackDamage = 2;
-        AttackProbability = 1;
+        AttackProbability = 0.5;
         Name = "Grapple";
         AttackSideEffect = AttackSideEffects.Steal;
     }
@@ -277,7 +277,7 @@ public class Whip : AttackAction
     public Whip()
     {
         AttackDamage = 1;
-        AttackProbability = 1; // change to 0.5
+        AttackProbability = 0.5;
         AttackTemporaryEffect = AttackTemporaryEffects.Poison;
         Name = "Whip";
     }
