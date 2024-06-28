@@ -12,6 +12,10 @@ public class TurnManager
     public AttackActions SelectedAttack { get; set; }
     public AttackAction CurrentAttack { get; set; }
     public int CurrentDamage { get; set; }
+    public void ClampDamage()
+    {
+        if (CurrentDamage < 0) CurrentDamage = 0;
+    }
     public double CurrentProbability { get; set; }
     public int SelectedGear { get; set; }
     public Consumables ConsumableSelected { get; set; }
@@ -124,7 +128,7 @@ public class TurnManager
 
             CharacterTurnEnd?.Invoke();
             if (party.CheckForEmptyParties()) break;
-            Thread.Sleep(1000);
+            Thread.Sleep(500);
         }
         PartyTurnEnd?.Invoke(turn, party);
     }
