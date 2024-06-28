@@ -215,7 +215,6 @@ public class StoneAmarok : Monster
 
     public StoneAmarok()
     {
-
         MaxHP = DefaultMaxHP;
         CurrentHP = MaxHP;
         DefensiveAttackModifier = new StoneArmor();

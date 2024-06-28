@@ -15,7 +15,7 @@ public class PartyManager
 
     public List<Gear?> HeroGearInventory = new List<Gear?>()
     {
-        new BinaryHelm()
+        new BinaryHelm(), new BinaryHelm(), new BinaryHelm()
     };
 
     public List<Gear?> MonsterGearInventory = new List<Gear?>()

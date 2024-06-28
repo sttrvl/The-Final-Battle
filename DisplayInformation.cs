@@ -18,6 +18,7 @@ public class DisplayInformation
         party.CharacterPoisoned         += OnDisplayCharacterPoisoned;
         turn.TauntMessage               += OnDisplayTaunt;
         party.OffensiveModifierApplied  += OnDisplayOffensiveModifierEffects;
+        TurnSkipped                     += OnDisplayTurnSkipped;
     }
 
     public event Action<TurnManager> TurnSkipped;
@@ -332,11 +333,11 @@ public class DisplayInformation
         Console.ResetColor();
         
         string soulsBar = DisplayCurrentSoulBar(character, turn, party);
-        Console.Write($" {soulsBar}");
+        Console.WriteLine($" {soulsBar}");
         Console.ResetColor();
         Console.WriteLine($@"
-         Weapon           : {gear}
-         Armor            : {armor}                   ");
+         Weapon      : {gear}
+         Armor       : {armor}                   ");
     }
 
     private string DisplayCurrentSoulBar(Character character, TurnManager turn, PartyManager party)
@@ -346,11 +347,11 @@ public class DisplayInformation
         if (character is Hero)
         {
             if (character.SoulsValue >= 3)
-                soulBar += "|•|•|•| *Bonus Ready*";
+                soulBar += "|∙|∙|∙| *Bonus Ready*";
             else if (character.SoulsValue >= 2)
-                soulBar += "|•|•| |";
+                soulBar += "|∙|∙| |";
             else if (character.SoulsValue >= 1)
-                soulBar += "|•| | |";
+                soulBar += "|∙| | |";
             else
                 soulBar += "| | | |";
         }
@@ -377,7 +378,7 @@ public class DisplayInformation
         foreach (char letter in characterString)
             counter++;
 
-        int padding = 25 - counter;
+        int padding = 20 - counter;
         return new string(' ', padding);
     }
 
@@ -479,7 +480,8 @@ public class DisplayInformation
             new EquipGear()
         };
 
-        int row = 18;
+        
+        int row = 23;
         for (int index = 0; index < menuList.Count; index++)
         {
             Console.SetCursorPosition(1, row);
@@ -502,9 +504,12 @@ public class DisplayInformation
     private void DisplayConsumables(List<Consumables> currentItems)
     { // This has potential for re-use but I'm not sure how I would go from Consumables to Gear or any other (w/o object)
         int count = 0;
+        ClearMenu();
+        Console.SetCursorPosition(1, 23);
         foreach (Consumables item in currentItems)
         {
             Console.WriteLine($" -{item}({count}) ");
+            Console.SetCursorPosition(1, Console.CursorTop);
             count++;
         }
     }
@@ -513,9 +518,9 @@ public class DisplayInformation
     public void DisplayActionList(PartyManager party, TurnManager turn)
     {
         InputManager input = new InputManager();
+        ClearMenu();
         int count = 1;
-        Console.SetCursorPosition(1, 23);
-        
+        Console.SetCursorPosition(1, 22);
         foreach (AttackActions action in Enum.GetValues(typeof(AttackActions)))
         {
             if (party.ActionAvailable(action, turn))
@@ -533,15 +538,26 @@ public class DisplayInformation
         }
     }
 
+    public void ClearMenu()
+    {
+        for (int index = 22; index < 28; index++)
+        {
+            Console.SetCursorPosition(1, index);
+            Console.WriteLine(new string(' ', 50));
+        }
+    }
+
     public void DisplayTurnInfo(Character? currentCharacter)
     {
-        Console.SetCursorPosition(1, 17);
+        Console.SetCursorPosition(1, 21);
         Console.WriteLine($"It's {currentCharacter}'s turn...");
     }
 
 
-    public void DisplayCurrentGearInventory(List<Gear> currentGearInventory)
+    public void DisplayCurrentGearInventory(List<Gear?> currentGearInventory)
     {
+        ClearMenu();
+        Console.SetCursorPosition(1, 23);
         if (currentGearInventory.Count > 0)
             DisplayGearInInventory(currentGearInventory);
         else
@@ -551,9 +567,11 @@ public class DisplayInformation
     private void DisplayGearInInventory(List<Gear> currentGearInventory)
     { // This has potential for re-use but I'm not sure how I would go from Consumables to Gear or any other (w/o object), maybe structuring it differently
         int count = 0;
+        Console.SetCursorPosition(1, 23);
         foreach (Gear gear in currentGearInventory)
         {
             Console.WriteLine($"{count} - {gear}");
+            Console.SetCursorPosition(1, Console.CursorTop);
             count++;
         }
     }

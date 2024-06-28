@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.VisualBasic;
+using System;
 
 public class InputManager
 {
@@ -64,16 +65,22 @@ public class InputManager
         if (turn.ConsumableSelected.Heal != null) turn.CurrentHealValue = (int)turn.ConsumableSelected.Heal;
     }
 
-    public void AskInputAction(TurnManager turn, PartyManager party)
+    public void AskInputAction(TurnManager turn, PartyManager party, DisplayInformation info)
     {
         List<AttackActions> availableActions = ActionAvailableCheck(party, turn);
-
+        
         int inputAction = ChooseAction("Choose an action:", availableActions.Count + 1);
         int opponentPartyCount = turn.CurrentOpponentParty(party).Count;
         // Fix: separate a bit
+
+        info.ClearMenu();
+        Console.SetCursorPosition(1, 23);
         if (turn.CurrentOpponentParty(party).Count > 1)
             for (int index = 0; index < turn.CurrentOpponentParty(party).Count; index++)
-            Console.WriteLine($"{turn.CurrentOpponentParty(party)[index]}({index})");
+            {
+                Console.WriteLine($"{turn.CurrentOpponentParty(party)[index]}({index})");
+                Console.SetCursorPosition(1, Console.CursorTop);
+            }
 
         int? inputTarget = opponentPartyCount == 1 ? 0 : ChooseOption("Choose a target:", opponentPartyCount);
 
@@ -91,11 +98,14 @@ public class InputManager
             {
                 inputAction = Convert.ToInt32(AskUser(prompt));
                 if (inputAction <= 0 || inputAction >= maxIndex)
-                    Console.Write("Invalid choice. ");
+                {
+                    Console.SetCursorPosition(1 + prompt.Length, 0);
+                    Console.Write("Invalid choice: ");
+                }
             }
             catch (FormatException)
             {
-                Console.WriteLine("Not a number.");
+                Console.Write("Not a number.");
             }
         }
         return (int)inputAction!;
@@ -179,7 +189,7 @@ public class InputManager
         foreach (CharacterOptions o in Enum.GetValues(typeof(CharacterOptions)))
             options++;
 
-        Console.SetCursorPosition(1, 22);
+        
         int? choice = ChooseOption("Choose what to do:", options);
 
         return info.DisplayCorrectMenu((int)choice, party, turn, info);
@@ -200,7 +210,7 @@ public class InputManager
 
         if (option == 1)
         {
-            input.AskInputAction(turn, party);
+            input.AskInputAction(turn, party, info);
             party.DamageTaken(party, turn);
         }
         if (option == 2)
@@ -218,7 +228,7 @@ public class InputManager
         {
             if (party.OptionAvailable(option, turn))
             {
-                ChooseInputGear(party, turn);
+                ChooseInputGear(party, turn, info);
                 turn.CheckSelectedCharacterGear(party);
                 party.EquipGear(turn, info);
             }
@@ -256,7 +266,7 @@ public class InputManager
         }
     }
 
-    public void ChooseInputGear(PartyManager party, TurnManager turn)
+    public void ChooseInputGear(PartyManager party, TurnManager turn, DisplayInformation info)
     {
         int choice = ChooseOption("Choose gear to equip:", turn.CurrentGearInventory.Count);
         turn.SelectedGear = choice;
@@ -275,9 +285,18 @@ public class InputManager
         {
             try
             {
-                choice = Convert.ToInt32(AskUser(prompt));
+                Console.SetCursorPosition(1, 22);
+                Console.Write(new string(' ', 50));
+                Console.SetCursorPosition(1, 22);
                 if (choice < 0 || choice >= maxIndex)
-                    Console.Write("Invalid choice. ");
+                {
+                    
+
+                    Console.Write("Invalid choice.");
+                    Console.SetCursorPosition(prompt.Length - 1, 22);
+                }
+
+                choice = Convert.ToInt32(AskUser(prompt));
             }
             catch (FormatException)
             {
