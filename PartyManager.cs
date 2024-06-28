@@ -290,6 +290,7 @@ public class PartyManager
             case ObjectSight when turn.CurrentAttack.AttackType == AttackTypes.Decoding:
                 turn.CurrentTargetDefensiveModifier = new ObjectSight();
                 turn.CurrentDamage += turn.CurrentTargetDefensiveModifier.Value;
+                turn.ClampDamage();
                 DefensiveModifierApplied.Invoke(party, turn);
                 break;
             default:
@@ -398,29 +399,25 @@ public class PartyManager
         } 
     }
 
-    // Fix this needs to be passed to the logger
     private void TransferDeathMonsterPartyGear(PartyManager party, TurnManager turn)
     {
-        string message = "";
         foreach (Gear? gear in MonsterGearInventory)
-        {
             HeroGearInventory.Add(gear);
-            message += $"{gear} ";
-        }
-        Console.WriteLine($"{turn.CurrentPartyName(party)}'s obtained: {message}");
+        GearObtained?.Invoke(turn, party);
     }
 
-    // Fix: pass it to the logger
+    public event Action<TurnManager, PartyManager> GearObtained;
+
     private void TransferDeathMonsterPartyItems(PartyManager party, TurnManager turn)
     {
         string message = "";
         foreach (Consumables item in MonstersItemInventory)
-        {
             HeroesItemInventory.Add(item);
-            message += $"{item} ";
-        }
-        Console.WriteLine($"{turn.CurrentPartyName(party)}'s obtained: {message}");
+
+        ItemsObtained?.Invoke(turn, party);
     }
+
+    public event Action<TurnManager, PartyManager> ItemsObtained;
 
     public void NextMonsterParty(TurnManager turn, PartyManager party)
     {
