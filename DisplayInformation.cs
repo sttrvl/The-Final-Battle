@@ -16,6 +16,7 @@ public class DisplayInformation
         party.MonstersDefeated          += OnDisplayBattleEnd;
         party.SoulBonus                 += OnDisplaySoulBonus;
         party.CharacterPoisoned         += OnDisplayCharacterPoisoned;
+        party.CharacterPlagueSick       += OnDisplayCharacterPlagueSick;
         turn.TauntMessage               += OnDisplayTaunt;
         party.OffensiveModifierApplied  += OnDisplayOffensiveModifierEffects;
         party.ItemsObtained             += OnDisplayItemsObtained;
@@ -52,7 +53,7 @@ public class DisplayInformation
     }
 
 
-    public int DisplayCorrectMenu(int choice, PartyManager party, TurnManager turn, DisplayInformation info)
+    public int DisplayCorrectMenu(int? choice, PartyManager party, TurnManager turn, DisplayInformation info)
     {
         switch (choice)
         {
@@ -70,9 +71,10 @@ public class DisplayInformation
             default:
                 turn.CurrentAttack = new Nothing();
                 TurnSkipped?.Invoke(turn);
+                // choice = 0; DEBUG purposes
                 break;
         };
-        return choice;
+        return (int)choice;
     }
 
     public void OnDisplayTurnSkipped(TurnManager turn)
@@ -99,6 +101,14 @@ public class DisplayInformation
         List<ColoredText> colorText = new List<ColoredText>();
         colorText.Add(new ColoredText($"{turn.CurrentOpponentParty(party)[turn.CurrentTarget]}", ConsoleColor.DarkRed));
         colorText.Add(new ColoredText($"was poisoned!", ConsoleColor.DarkGreen));
+        LogMessages.Add(colorText);
+    }
+
+    public void OnDisplayCharacterPlagueSick(TurnManager turn, PartyManager party)
+    {
+        List<ColoredText> colorText = new List<ColoredText>();
+        colorText.Add(new ColoredText($"{turn.CurrentOpponentParty(party)[turn.CurrentTarget]}", ConsoleColor.DarkRed));
+        colorText.Add(new ColoredText($" has the rot plague, they will be unable to have their turn.", ConsoleColor.DarkGreen));
         LogMessages.Add(colorText);
     }
 
@@ -549,7 +559,7 @@ public class DisplayInformation
         InputManager input = new InputManager();
         ClearMenu();
         int count = 1;
-        Console.SetCursorPosition(1, 22);
+        Console.SetCursorPosition(1, 23);
         foreach (AttackActions action in Enum.GetValues(typeof(AttackActions)))
         {
             if (party.ActionAvailable(action, turn))
