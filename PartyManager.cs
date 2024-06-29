@@ -62,6 +62,17 @@ public class PartyManager
         return turn.CurrentPoisonedCharacters.Count > 0;
     }
 
+    public bool CheckForPlagueSickCharacter(TurnManager turn)
+    {
+        for (int index = 0; index < turn.CurrentSickPlagueCharacters.Count; index++)
+        {
+            SickPlaguedCharacterInfo sick = turn.CurrentSickPlagueCharacters[index];
+            if (sick.TurnsSick == 0)
+                turn.CurrentSickPlagueCharacters.Remove(sick);
+        }
+        return turn.CurrentSickPlagueCharacters.Count > 0;
+    }
+
     public void PoisonCharacter(TurnManager turn)
     {
         for (int index = 0; index < turn.CurrentPoisonedCharacters.Count; index++)
@@ -73,6 +84,18 @@ public class PartyManager
             turn.CurrentPoisonedCharacters[index] = poisoned;
         }   
     }
+
+    public void PlagueSickCharacter(TurnManager turn)
+    {
+        for (int index = 0; index < turn.CurrentSickPlagueCharacters.Count; index++)
+        {
+            SickPlaguedCharacterInfo sick = turn.CurrentSickPlagueCharacters[index];
+            sick.Character.ForcedChoice = 0;
+            sick.TurnsSick -= 1;
+            turn.CurrentSickPlagueCharacters[index] = sick;
+        }
+    }
+
     public void UpdateCharacterHealth(TurnManager turn)
     {
         turn.SelectedCharacter.CurrentHP += turn.CurrentHealValue;
@@ -94,7 +117,7 @@ public class PartyManager
         InputManager input = new InputManager();
         (HeroPlayer, MonsterPlayer) = input.MenuSetter(input.InputMenuOption(menu, info));
 
-        CreateHeroParty(HeroPlayer, new TrueProgrammer(), new VinFletcher());
+        CreateHeroParty(HeroPlayer, new TrueProgrammer(), new VinFletcher(), new Amarok());
         CreateMonsterParty(MonsterPlayer, new Skeleton(), new StoneAmarok());
 
         List<Level> levels = LoadLevelsFromFile("Levels.txt");
@@ -154,7 +177,8 @@ public class PartyManager
             "skeleton"       => new Skeleton(),
             "stoneamarok"    => new StoneAmarok(),
             "uncodedone"     => new UncodedOne(),
-            "shadowoctopoid" => new ShadowOctopoid()
+            "shadowoctopoid" => new ShadowOctopoid(),
+            "amarok"         => new Amarok()
         };
     }
 
@@ -355,8 +379,14 @@ public class PartyManager
                 turn.CurrentPoisonedCharacters.Add(new PoisonedCharacterInfo(poisonedTarget, turn.CurrentOpponentParty(party), 3));
                 CharacterPoisoned?.Invoke(turn, party);
                 break;
+            case AttackTemporaryEffects.RotPlague:
+                Character sickPlagueTarget = turn.CurrentOpponentParty(party)[turn.CurrentTarget];
+                turn.CurrentSickPlagueCharacters.Add(new SickPlaguedCharacterInfo(sickPlagueTarget, turn.CurrentOpponentParty(party), 1));
+                CharacterPlagueSick?.Invoke(turn, party);
+                break;
         }
     }
+    public event Action<TurnManager, PartyManager> CharacterPlagueSick;
 
     private void StealGear(TurnManager turn, PartyManager party, Gear? gearToBeStolen)
     {
@@ -465,7 +495,7 @@ public class PartyManager
 
     public bool CheckMonsterDefeat(PartyManager party) => party.IsPartyEmpty(party.MonsterPartyList);
 
-    public bool OptionAvailable(int choice, TurnManager turn) => !OptionNotAvailable(choice, turn);
+    public bool OptionAvailable(int? choice, TurnManager turn) => !OptionNotAvailable(choice, turn);
 
     public bool OptionNotAvailable(int? choice, TurnManager turn) => 
         choice == 3 && turn.CurrentGearInventory.Count == 0;
