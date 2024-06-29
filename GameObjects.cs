@@ -284,6 +284,18 @@ public class Whip : AttackAction
     public override AttackActions Execute() => AttackActions.Whip;
 }
 
+public class Scratch : AttackAction
+{
+    public Scratch()
+    {
+        AttackDamage = 1;
+        AttackProbability = 1;
+        AttackTemporaryEffect = AttackTemporaryEffects.RotPlague;
+        Name = "Scratch";
+    }
+    public override AttackActions Execute() => AttackActions.Scratch;
+}
+
 public abstract class MenuOption : IMenuAction<MenuOptions>
 {
     public string Name { get; set; } = "Menu Option";
@@ -375,7 +387,8 @@ public enum AttackActions
     QuickShot,
     Bite,
     Grapple,
-    Whip
+    Whip,
+    Scratch
 }
 
 public enum DefensiveAttackModifiers
@@ -403,7 +416,8 @@ public enum AttackSideEffects
 
 public enum AttackTemporaryEffects
 {
-    Poison
+    Poison,
+    RotPlague
 }
 
 public enum ConsumableItem
