@@ -3,6 +3,7 @@
 public class TurnManager
 {
     public int Round { get; private set; } = 0;
+    public int RoundCounter { get; private set; }
     public int NumberBattleRounds { get; private set; } = 0;
     private int CharacterNumber { get; set; } = 0;
     public Character SelectedPlayerType { get; set; }
@@ -64,30 +65,45 @@ public class TurnManager
         CharacterTurnEnd += UpdateCharacterNumber;
         PartyTurnEnd += ManagePoisoned;
         PartyTurnEnd += ManagePlagueSick;
+        PartyTurnEnd += ManagePartyTurns;
         party.AdditionalMonsterRound += NextBattle;
     }
 
-    private int PartyTurn { get; set; } = 0;
+    public void ManagePartyTurns(TurnManager turn, PartyManager party)
+    {
+        if (CurrentParty(party) == party.HeroPartyList)
+            party.HeroPartyTurn++;
+        else
+            party.MonsterPartyTurn++;
+    }
+    
+    public void GetCurrentPartyTurn(PartyManager party)
+    {
+        if (CurrentParty(party) == party.HeroPartyList)
+            CurrentPartyTurn = party.HeroPartyTurn;
+        else
+            CurrentPartyTurn = party.MonsterPartyTurn;
+    }
+    private int CurrentPartyTurn { get; set; } = 0;
     public void ManagePoisoned(TurnManager turn, PartyManager party)
     {
-        PartyTurn++;
-        if (PartyTurn == 2)
+        GetCurrentPartyTurn(party);
+        if (CurrentPartyTurn == 2)
             if (party.CheckForPoisonedCharacter(turn))
             {
                 party.PoisonCharacter(turn);
-                PartyTurn = 0;
+                CurrentPartyTurn = 0;
             }
     }
 
     // this is weirdly hardcoded
     public void ManagePlagueSick(TurnManager turn, PartyManager party)
     {
-        PartyTurn++;
-        if (PartyTurn == 2)
+        if (CurrentPartyTurn == 2)
             if (party.CheckForPlagueSickCharacter(turn))
             {
                 party.PlagueSickCharacter(turn);
-                PartyTurn = 0;
+                CurrentPartyTurn = 0;
             }
     }
 
@@ -95,7 +111,12 @@ public class TurnManager
         CharacterNumber = CharacterNumber < CurrentCharacterList.Count ? CharacterNumber + CharacterNumber++ : 0;
 
     public void NextBattle() => NumberBattleRounds++;
-    public void NextRound() => Round++;
+    public void CheckForNextRound(PartyManager party)
+    {
+        if (party.HeroPartyTurn == party.MonsterPartyTurn) Round++;
+    }
+
+    public void AdvanceToNextParty() => RoundCounter++;
     public void AdditionalBattleRoundUsed() => NumberBattleRounds--;
 
     public void CurrentSelectedCharacter(PartyManager party)
@@ -128,10 +149,10 @@ public class TurnManager
         SelectedPlayerType = CurrentPlayerType(party);
     }
 
-    public List<Character> CurrentParty(PartyManager party) =>
-        Round % 2 == 0 ? party.HeroPartyList : party.MonsterPartyList;
+    public List<Character> CurrentParty(PartyManager party) => 
+        RoundCounter % 2 == 0 ? party.HeroPartyList : party.MonsterPartyList;
 
-    public Character CurrentPlayerType(PartyManager party) => Round % 2 == 0 ? party.HeroPlayer : party.MonsterPlayer;
+    public Character CurrentPlayerType(PartyManager party) => RoundCounter % 2 == 0 ? party.HeroPlayer : party.MonsterPlayer;
 
     public void PartyTurnSetUp(PartyManager party)  
     {
