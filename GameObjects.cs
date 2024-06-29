@@ -107,7 +107,7 @@ public class VinsBow : Weapon
 
 public class CannonOfConsolas : Weapon
 {
-    public override AttackActions Execute() => AttackActions.QuickShot;
+    public override AttackActions Execute() => AttackActions.CannonBall;
 
     public CannonOfConsolas(TurnManager turn)
     {
@@ -119,9 +119,10 @@ public class CannonOfConsolas : Weapon
     public int GetTurnDamage(TurnManager turn)
     {
         int value = 1;
-        if (turn.Round % 3 == 0 || turn.Round % 5 == 0) value = 2;
+        //if (turn.Round == 0) value = 1; intended, full damage first round
         if (turn.Round % 3 == 0 && turn.Round % 5 == 0) value = 5;
-
+        else if (turn.Round % 3 == 0 || turn.Round % 5 == 0) value = 2;
+        
         return value;
     }
 }
@@ -296,6 +297,22 @@ public class Scratch : AttackAction
     public override AttackActions Execute() => AttackActions.Scratch;
 }
 
+public abstract class AreaAttack : AttackAction
+{
+
+}
+
+public class CorruptRockets : AreaAttack
+{
+    public CorruptRockets()
+    {
+        AttackDamage = 1;
+        AttackProbability = 0.75;
+        Name = "Corrupt Rockets";
+    }
+    public override AttackActions Execute() => AttackActions.CorruptRockets;
+}
+
 public abstract class MenuOption : IMenuAction<MenuOptions>
 {
     public string Name { get; set; } = "Menu Option";
@@ -388,7 +405,9 @@ public enum AttackActions
     Bite,
     Grapple,
     Whip,
-    Scratch
+    Scratch,
+    CorruptRockets,
+    CannonBall
 }
 
 public enum DefensiveAttackModifiers
