@@ -162,12 +162,13 @@ public class MylaraAndSkorin : Hero // consider separating these
 {
     int DefaultMaxHP { get; } = 10;
 
-    public MylaraAndSkorin()
+    public MylaraAndSkorin(TurnManager turn)
     {
         MaxHP = DefaultMaxHP;
         CurrentHP = MaxHP;
-        Name = "Mylara and Skorin";
+        Name = "Mylara";
         StandardAttack = AttackActions.Punch;
+        Weapon = new CannonOfConsolas(turn);
     }
 }
 
@@ -248,6 +249,19 @@ public class ShadowOctopoid : Monster
         Name = "Shadow Octopoid";
         StandardAttack = AttackActions.Grapple;
         AdditionalStandardAttack = AttackActions.Whip;
+        SoulsXP = 2;
+    }
+}
+
+public class EvilRobot : Monster
+{
+    int DefaultMaxHP { get; } = 15;
+    public EvilRobot()
+    {
+        MaxHP = DefaultMaxHP;
+        CurrentHP = MaxHP;
+        Name = "Evil Robot";
+        StandardAttack = AttackActions.CorruptRockets;
         SoulsXP = 2;
     }
 }
