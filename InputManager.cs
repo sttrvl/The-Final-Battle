@@ -89,28 +89,6 @@ public class InputManager
         InputAction(party, turn, availableActions[inputAction - 1]);
     }
 
-    private int ChooseAction(string prompt, int maxIndex)
-    {
-        int? inputAction = null;
-        while (inputAction == null || inputAction <= 0 || inputAction >= maxIndex)
-        {
-            try
-            {
-                inputAction = Convert.ToInt32(AskUser(prompt));
-                if (inputAction <= 0 || inputAction >= maxIndex)
-                {
-                    Console.SetCursorPosition(1 + prompt.Length, 0);
-                    Console.Write("Invalid choice: ");
-                }
-            }
-            catch (FormatException)
-            {
-                Console.Write("Not a number.");
-            }
-        }
-        return (int)inputAction!;
-    }
-
     public List<AttackActions> ActionAvailableCheck(PartyManager party, TurnManager turn)
     {
         List<AttackActions> AvailableActions = new List<AttackActions>();
@@ -144,31 +122,34 @@ public class InputManager
         };
     }
 
-    public MenuOptions InputMenuOption(List<MenuOption> menu, DisplayInformation info) 
-
+    public MenuOptions InputMenuOption(List<MenuOption> menu, DisplayInformation info)
     {
         int? choice = null;
-        info.DisplayMenu(menu);
-        choice = Convert.ToInt32(AskUser("Please choose a Gamemode:"));
-
+        DrawMenu(menu, info);
         while (choice == null || CheckListBounds(choice, menu))
         {
             try
             {
+                choice = Convert.ToInt32(AskUser("Please choose a Gamemode:"));
                 if (CheckListBounds(choice, menu))
                 {
-                    Console.Clear();
-                    info.DisplayMenu(menu);
+                    DrawMenu(menu, info);
                     Console.Write("Doesn't exist. ");
-                    choice = Convert.ToInt32(AskUser("Please choose a Gamemode:"));
                 }
             }
             catch (FormatException)
             {
-                Console.WriteLine("Not a number.");
+                DrawMenu(menu, info);
+                Console.Write("Not a number. ");
             }
         }
         return menu[(int)choice].Execute();
+    }
+
+    private void DrawMenu(List<MenuOption> menu, DisplayInformation info)
+    {
+        Console.Clear();
+        info.DisplayMenu(menu);
     }
 
     private bool CheckListBounds(int? choice, List<MenuOption> menu) => choice < 0 || choice >= menu.Count;
@@ -281,28 +262,65 @@ public class InputManager
     public int ChooseOption(string prompt, int maxIndex)
     {
         int? choice = null;
+        Console.SetCursorPosition(1, 22);
         while (choice == null || choice < 0 || choice >= maxIndex)
         {
             try
             {
-                Console.SetCursorPosition(1, 22);
-                Console.Write(new string(' ', 50));
-                Console.SetCursorPosition(1, 22);
                 if (choice < 0 || choice >= maxIndex)
                 {
-                    
-
-                    Console.Write("Invalid choice.");
-                    Console.SetCursorPosition(prompt.Length - 1, 22);
+                    ClearSingleLine(50);
+                    string invalidChoice = "Invalid choice.";
+                    Console.Write(invalidChoice);
+                    choice = null;
+                    Console.SetCursorPosition(invalidChoice.Length + 2, 22);
                 }
-
                 choice = Convert.ToInt32(AskUser(prompt));
             }
             catch (FormatException)
             {
-                Console.WriteLine("Not a number.");
+                ClearSingleLine(0);
+                string notNumber = "Not a number.";
+                Console.Write(notNumber);
+                Console.SetCursorPosition(notNumber.Length + 2, 22);
             }
         }
         return (int)choice;
+    }
+
+    private int ChooseAction(string prompt, int maxIndex)
+    {
+        int? inputAction = null;
+        Console.SetCursorPosition(1, 22);
+        while (inputAction == null || inputAction <= 0 || inputAction >= maxIndex)
+        {
+            try
+            {
+                if (inputAction <= 0 || inputAction >= maxIndex)
+                {
+                    ClearSingleLine(50);
+                    string invalidChoice = "Invalid choice.";
+                    Console.Write(invalidChoice);
+                    inputAction = null;
+                    Console.SetCursorPosition(invalidChoice.Length + 2, 22);
+                }
+                inputAction = Convert.ToInt32(AskUser(prompt));
+            }
+            catch (FormatException)
+            {
+                ClearSingleLine(50);
+                string notNumber = "Not a number.";
+                Console.Write(notNumber);
+                Console.SetCursorPosition(notNumber.Length + 2, 22);
+            }
+        }
+        return (int)inputAction!;
+    }
+
+    public void ClearSingleLine(int value)
+    {
+        Console.SetCursorPosition(1, 22);
+        Console.Write(new string(' ', 50));
+        Console.SetCursorPosition(1, 22);
     }
 }
