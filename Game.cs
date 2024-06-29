@@ -13,14 +13,15 @@
             new PlayerVsPlayer()
         };
 
-        party.SetUpParties(menuList, info);        
+        party.SetUpParties(menuList, info, turn);        
 
         while (!party.CheckForEmptyParties())
         {
             turn.PartyTurnSetUp(party);
 
             turn.RunCurrentParty(turn, info, party);
-            turn.NextRound();
+            turn.CheckForNextRound(party);
+            turn.AdvanceToNextParty();
 
             CheckHeroLost();
         }
