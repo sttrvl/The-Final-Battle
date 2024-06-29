@@ -12,6 +12,7 @@ public abstract class Character
     public int CurrentHP { get; set; }
     public int SoulsXP { get; set; }
     public int SoulsValue { get; set; } = 0;
+    public int? ForcedChoice { get; set; }
     public override string ToString() => Name;
     public int HealthClamp() => Math.Clamp(CurrentHP, 0, MaxHP);
     public bool IsAlive() => CurrentHP > 0;
@@ -75,10 +76,6 @@ public class Computer : Character
         }
         else
             actionNumber = normalAttacks[0];
-
-        // for (int i = 0; i < availableActions.Count; i++) Console.WriteLine($"{i}: {availableActions[i]} ");
-        // Console.WriteLine("DEBUG  ChosenNumber: " + actionNumber);
-        // Console.WriteLine($"DEBUG Action: {availableActions[actionNumber]}");
 
         input.InputAction(party, turn, availableActions[actionNumber]);
     }
@@ -206,6 +203,23 @@ public class UncodedOne : Monster
         StandardAttack = AttackActions.Unraveling;
         SoulsXP = 999;
         TauntText = "<<THE UNRAVELLING OF ALL THINGS IS INEVITABLE>>";
+    }
+}
+
+public class Amarok : Monster
+{
+    int DefaultMaxHP { get; } = 8;
+
+    public Amarok()
+    {
+        MaxHP = DefaultMaxHP;
+        CurrentHP = MaxHP;
+        
+        Name = "Amarok";
+        StandardAttack = AttackActions.Bite;
+        AdditionalStandardAttack = AttackActions.Scratch;
+        SoulsXP = 1;
+        TauntText = ">>You smell a familiar rotten stench<<";
     }
 }
 
