@@ -26,6 +26,7 @@ public class TurnManager
     public DefensiveAttackModifier CurrentTargetDefensiveModifier { get; set; }
     public OffensiveAttackModifier CurrentOffensiveModifier { get; set; }
     public List<PoisonedCharacterInfo> CurrentPoisonedCharacters { get; set; } = new List<PoisonedCharacterInfo>();
+    public List<SickPlaguedCharacterInfo> CurrentSickPlagueCharacters { get; set; } = new List<SickPlaguedCharacterInfo>();
     public struct PoisonedCharacterInfo
     {
         public Character Character { get; set; }
@@ -40,6 +41,21 @@ public class TurnManager
         }
     };
 
+    public struct SickPlaguedCharacterInfo
+    {
+        public Character Character { get; set; }
+        public List<Character> CharacterParty { get; set; }
+        public int TurnsSick { get; set; }
+        public int? ForcedChoice { get; set; } = null;
+
+        public SickPlaguedCharacterInfo(Character character, List<Character> characterParty, int turnsSick)
+        {
+            Character = character;
+            CharacterParty = characterParty;
+            TurnsSick = turnsSick;
+        }
+    }
+
     public event Action CharacterTurnEnd;
     public event Action<TurnManager, PartyManager> PartyTurnEnd;
     public event Action? turnSkipped;
@@ -47,6 +63,7 @@ public class TurnManager
     {
         CharacterTurnEnd += UpdateCharacterNumber;
         PartyTurnEnd += ManagePoisoned;
+        PartyTurnEnd += ManagePlagueSick;
         party.AdditionalMonsterRound += NextBattle;
     }
 
@@ -58,6 +75,18 @@ public class TurnManager
             if (party.CheckForPoisonedCharacter(turn))
             {
                 party.PoisonCharacter(turn);
+                PartyTurn = 0;
+            }
+    }
+
+    // this is weirdly hardcoded
+    public void ManagePlagueSick(TurnManager turn, PartyManager party)
+    {
+        PartyTurn++;
+        if (PartyTurn == 2)
+            if (party.CheckForPlagueSickCharacter(turn))
+            {
+                party.PlagueSickCharacter(turn);
                 PartyTurn = 0;
             }
     }
@@ -128,7 +157,7 @@ public class TurnManager
 
             CharacterTurnEnd?.Invoke();
             if (party.CheckForEmptyParties()) break;
-            Thread.Sleep(500);
+            Thread.Sleep(0);
         }
         PartyTurnEnd?.Invoke(turn, party);
     }
