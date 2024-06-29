@@ -20,7 +20,7 @@ public class InputManager
     public void InputAction(PartyManager party, TurnManager turn, AttackActions attack) 
     {
         AttackAction? resultAction = GetAttackAction(attack);
-        Gear? resultGear = GetGear(turn.SelectedCharacter.Weapon);
+        Gear? resultGear = GetGear(turn.SelectedCharacter.Weapon, turn);
 
         if (resultGear != null && party.ActionGearAvailable(attack, turn))
             RetriveAttackProperties(turn, resultGear);
@@ -32,24 +32,26 @@ public class InputManager
     {
         return attack switch
         {
-            AttackActions.Punch      => new Punch(),
-            AttackActions.BoneCrunch => new BoneCrunch(),
-            AttackActions.Unraveling => new Unraveling(),
-            AttackActions.Grapple    => new Grapple(),
-            AttackActions.Whip       => new Whip(),
-            AttackActions.Bite       => new Bite(),
-            AttackActions.Scratch    => new Scratch(),
-            _                        => new Nothing()
-        };
+            AttackActions.Punch          => new Punch(),
+            AttackActions.BoneCrunch     => new BoneCrunch(),
+            AttackActions.Unraveling     => new Unraveling(),
+            AttackActions.Grapple        => new Grapple(),
+            AttackActions.Whip           => new Whip(),
+            AttackActions.Bite           => new Bite(),
+            AttackActions.Scratch        => new Scratch(),
+            AttackActions.CorruptRockets => new CorruptRockets(),
+            _                            => new Nothing()
+        };;;
     }
 
-    Gear? GetGear(Gear? weapon)
+    Gear? GetGear(Gear? weapon, TurnManager turn)
     {
         return weapon switch
         {
-            Sword => new Sword(),
-            Dagger => new Dagger(),
-            VinsBow => new VinsBow(),
+            Sword            => new Sword(),
+            Dagger           => new Dagger(),
+            VinsBow          => new VinsBow(),
+            CannonOfConsolas => new CannonOfConsolas(turn),
             _ => null
         };
     }
@@ -73,6 +75,9 @@ public class InputManager
         List<AttackActions> availableActions = ActionAvailableCheck(party, turn);
         
         int inputAction = ChooseAction("Choose an action:", availableActions.Count + 1);
+        InputAction(party, turn, availableActions[inputAction - 1]);
+
+
         int opponentPartyCount = turn.CurrentOpponentParty(party).Count;
         // Fix: separate a bit
 
@@ -84,12 +89,20 @@ public class InputManager
                 Console.WriteLine($"{turn.CurrentOpponentParty(party)[index]}({index})");
                 Console.SetCursorPosition(1, Console.CursorTop);
             }
-
-        int? inputTarget = opponentPartyCount == 1 ? 0 : ChooseOption("Choose a target:", opponentPartyCount);
+        int? inputTarget;
+        if (turn.CurrentAttack is AreaAttack)
+        {
+            inputTarget = 0; // could be something else but this is good for now
+        }
+        else
+        {
+            inputTarget = opponentPartyCount == 1 ? 0 : ChooseOption("Choose a target:", opponentPartyCount);
+        }
+        
 
 
         turn.CurrentTarget = (int)inputTarget;
-        InputAction(party, turn, availableActions[inputAction - 1]);
+        
     }
 
     public List<AttackActions> ActionAvailableCheck(PartyManager party, TurnManager turn)
@@ -107,7 +120,7 @@ public class InputManager
         return AvailableActions;
     }
 
-    public string Description(AttackActions? action) 
+    public string Description(AttackActions? action, TurnManager turn) 
     {
         return action switch
         {
@@ -117,11 +130,13 @@ public class InputManager
             AttackActions.Slash            => new Sword().Name,
             AttackActions.Stab             => new Dagger().Name,
             AttackActions.QuickShot        => new VinsBow().Name,
+            AttackActions.CannonBall       => new CannonOfConsolas(turn).Name,
             AttackActions.Bite             => new Bite().Name,
             AttackActions.Grapple          => new Grapple().Name,
             AttackActions.Whip             => new Whip().Name,
             AttackActions.Nothing          => new Nothing().Name,
             AttackActions.Scratch          => new Scratch().Name,
+            AttackActions.CorruptRockets   => new CorruptRockets().Name,
             _                              => "Unknown"
         };
     }
