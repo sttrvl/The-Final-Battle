@@ -6,6 +6,9 @@ public class PartyManager
 {
 
     // PartyPlayer and List can be a struct, also with both of their inventories
+
+    public int MonsterPartyTurn { get; set; } = 0;
+    public int HeroPartyTurn { get; set; } = 0;
     public Character HeroPlayer { get; set; }
     public List<Character> HeroPartyList { get; set; } = new List<Character>();
 
@@ -104,23 +107,23 @@ public class PartyManager
         if (turn.CurrentItemInventory(this).Count > 0) turn.CurrentItemInventory(this).RemoveAt(turn.ConsumableSelectedNumber);
     }
 
-    public void SetUpParties(List<MenuOption> menu, DisplayInformation info)
+    public void SetUpParties(List<MenuOption> menu, DisplayInformation info, TurnManager turn)
     {
-        PartySetUpSettings(menu, info);
+        PartySetUpSettings(menu, info, turn);
         Console.Clear();
     }
 
     public record Level(Gear? gear, params Character[] characters);
 
-    public void PartySetUpSettings(List<MenuOption> menu, DisplayInformation info)
+    public void PartySetUpSettings(List<MenuOption> menu, DisplayInformation info, TurnManager turn)
     {
         InputManager input = new InputManager();
         (HeroPlayer, MonsterPlayer) = input.MenuSetter(input.InputMenuOption(menu, info));
 
-        CreateHeroParty(HeroPlayer, new TrueProgrammer(), new VinFletcher(), new Amarok());
-        CreateMonsterParty(MonsterPlayer, new Skeleton(), new StoneAmarok());
+        CreateHeroParty(HeroPlayer, new MylaraAndSkorin(turn), new VinFletcher(), new Amarok());
+        CreateMonsterParty(MonsterPlayer, new Skeleton(), new StoneAmarok(), new EvilRobot());
 
-        List<Level> levels = LoadLevelsFromFile("Levels.txt");
+        List<Level> levels = LoadLevelsFromFile("Levels.txt", turn);
         Dictionary<Character, Gear> noGear = new Dictionary<Character, Gear>();
         //AddMonsterRound(noGear, new StoneAmarok(), new StoneAmarok());
         // AddMonsterRound(noGear, new UncodedOne());
@@ -140,7 +143,7 @@ public class PartyManager
         }
     }
 
-    public List<Level> LoadLevelsFromFile(string filePath)
+    public List<Level> LoadLevelsFromFile(string filePath, TurnManager turn)
     {
         List<Level> levels = new List<Level>();
 
@@ -150,7 +153,7 @@ public class PartyManager
             List<Character> characters = new List<Character>();
             string[] tokens = levelString.Split(',');
             for (int index = 1; index < tokens.Length; index++)
-                characters.Add(GetCharacter(tokens[index]));
+                characters.Add(GetCharacter(tokens[index], turn));
 
             Level level = new Level(GetGear(tokens[0]), characters.ToArray());
             levels.Add(level);
@@ -168,7 +171,7 @@ public class PartyManager
         };
     }
 
-    public Character GetCharacter(string character)
+    public Character GetCharacter(string character, TurnManager turn)
     {
         return character.ToLower() switch
         {
@@ -178,7 +181,9 @@ public class PartyManager
             "stoneamarok"    => new StoneAmarok(),
             "uncodedone"     => new UncodedOne(),
             "shadowoctopoid" => new ShadowOctopoid(),
-            "amarok"         => new Amarok()
+            "amarok"         => new Amarok(),
+            "evilrobot"      => new EvilRobot(),
+            "mylaraandskorin" => new MylaraAndSkorin(turn),
         };
     }
 
@@ -252,6 +257,13 @@ public class PartyManager
 
     private void UpdateHealth(PartyManager party, TurnManager turn)
     {
+        if (turn.CurrentAttack is AreaAttack)
+            foreach (Character character in turn.CurrentOpponentParty(party))
+            {
+                character.CurrentHP -= turn.CurrentDamage;
+                character.HealthClamp();
+            }
+
         turn.CurrentOpponentParty(party)[turn.CurrentTarget].CurrentHP -= turn.CurrentDamage;
         turn.CurrentOpponentParty(party)[turn.CurrentTarget].CurrentHP = turn.CurrentOpponentParty(party)[turn.CurrentTarget].HealthClamp();
     }
