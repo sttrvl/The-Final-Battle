@@ -151,25 +151,55 @@ public class DisplayInformation
 
     public void DisplayDamageDealt(TurnManager turn, PartyManager party)
     {
-        List<ColoredText> colorText = new List<ColoredText>();
-        colorText.Add(new ColoredText($"{turn.CurrentAttack}", ConsoleColor.DarkRed));
-        colorText.Add(new ColoredText($" deals ", ConsoleColor.White));
-        colorText.Add(new ColoredText($"{turn.CurrentDamage}", ConsoleColor.Red));
-        colorText.Add(new ColoredText($" damage to ", ConsoleColor.White));
-        colorText.Add(new ColoredText($"{turn.CurrentOpponentParty(party)[turn.CurrentTarget]}", ConsoleColor.DarkRed));
-        colorText.Add(new ColoredText($".", ConsoleColor.White));
-        LogMessages.Add(colorText);
+        if (turn.CurrentAttack is AreaAttack)
+        {
+            List<ColoredText> colorText = new List<ColoredText>();
+            colorText.Add(new ColoredText($"{turn.CurrentAttack}", ConsoleColor.DarkRed));
+            colorText.Add(new ColoredText($" deals ", ConsoleColor.White));
+            colorText.Add(new ColoredText($"{turn.CurrentDamage}", ConsoleColor.Red));
+            colorText.Add(new ColoredText($" area damage to ", ConsoleColor.White));
+            colorText.Add(new ColoredText($"ALL ", ConsoleColor.DarkCyan));
+            colorText.Add(new ColoredText($"enemies", ConsoleColor.White));
+            colorText.Add(new ColoredText($".", ConsoleColor.White));
+            LogMessages.Add(colorText);
+        }
+        else
+        {
+            List<ColoredText> colorText = new List<ColoredText>();
+            colorText.Add(new ColoredText($"{turn.CurrentAttack}", ConsoleColor.DarkRed));
+            colorText.Add(new ColoredText($" deals ", ConsoleColor.White));
+            colorText.Add(new ColoredText($"{turn.CurrentDamage}", ConsoleColor.Red));
+            colorText.Add(new ColoredText($" damage to ", ConsoleColor.White));
+            colorText.Add(new ColoredText($"{turn.CurrentOpponentParty(party)[turn.CurrentTarget]}", ConsoleColor.DarkRed));
+            colorText.Add(new ColoredText($".", ConsoleColor.White));
+            LogMessages.Add(colorText);
+        }
     }
 
     public void DisplayTargetCurrentHP(TurnManager turn, PartyManager party)
     {
-        int target = turn.CurrentTarget;
-        List<Character> opponent = turn.CurrentOpponentParty(party);
-        List<ColoredText> colorText = new List<ColoredText>();
-        colorText.Add(new ColoredText($"{opponent[target]}", ConsoleColor.DarkRed));
-        colorText.Add(new ColoredText($" is now at ", ConsoleColor.White));
-        colorText.Add(new ColoredText($"{opponent[target].CurrentHP}/{opponent[target].MaxHP} HP.", ConsoleColor.White));
-        LogMessages.Add(colorText);
+        if (turn.CurrentAttack is AreaAttack)
+        {
+            string opponent = turn.OpponentPartyName(party);
+            List<ColoredText> colorText = new List<ColoredText>();
+            colorText.Add(new ColoredText($"Everyone in ", ConsoleColor.White));
+            colorText.Add(new ColoredText($"{opponent}'s", ConsoleColor.Yellow));
+            colorText.Add(new ColoredText($" party is now at ", ConsoleColor.White));
+            colorText.Add(new ColoredText($"-{turn.CurrentDamage}", ConsoleColor.Red));
+            colorText.Add(new ColoredText($" less health.", ConsoleColor.White));
+            LogMessages.Add(colorText);
+        }
+        else
+        {
+            int target = turn.CurrentTarget;
+            List<Character> opponent = turn.CurrentOpponentParty(party);
+            List<ColoredText> colorText = new List<ColoredText>();
+            colorText.Add(new ColoredText($"{opponent[target]}", ConsoleColor.DarkRed));
+            colorText.Add(new ColoredText($" is now at ", ConsoleColor.White));
+            colorText.Add(new ColoredText($"{opponent[target].CurrentHP}/{opponent[target].MaxHP} HP.", ConsoleColor.White));
+            LogMessages.Add(colorText);
+        }
+
     }
 
     public void OnDisplayDefensiveModifierEffects(PartyManager party, TurnManager turn)
@@ -356,7 +386,7 @@ public class DisplayInformation
     private void DisplayCharacter(Character character, TurnManager turn, List<Character> characters, PartyManager party)
     {
         string initialPadding = DisplayPadding(characters, party);
-        string characterString = "";
+        string characterString = ""; // I do not get why this is empty
 
         characterString     += DisplaySelector(character, turn);
         string secondPadding = CalculateSecondPadding(characterString);
@@ -417,7 +447,7 @@ public class DisplayInformation
         foreach (char letter in characterString)
             counter++;
 
-        int padding = 20 - counter;
+        int padding = 20 - counter; // Fix, this here sometimes returns null with Long character names
         return new string(' ', padding);
     }
 
@@ -564,13 +594,13 @@ public class DisplayInformation
         {
             if (party.ActionAvailable(action, turn))
             {
-                Console.WriteLine($"{count} - {input.Description(action)}");
+                Console.WriteLine($"{count} - {input.Description(action, turn)}");
                 count++;
 
             }
             if (party.ActionGearAvailable(action, turn))
             {
-                Console.WriteLine($"{count} - {input.Description(action)}");
+                Console.WriteLine($"{count} - {input.Description(action, turn)}");
                 count++;
             }
             Console.SetCursorPosition(1, Console.CursorTop);
