@@ -1,5 +1,7 @@
 ﻿using Microsoft.VisualBasic;
+using Microsoft.VisualBasic.FileIO;
 using System;
+using static TurnManager;
 
 public class InputManager
 {
@@ -30,13 +32,14 @@ public class InputManager
     {
         return attack switch
         {
-            AttackActions.Punch => new Punch(),
+            AttackActions.Punch      => new Punch(),
             AttackActions.BoneCrunch => new BoneCrunch(),
             AttackActions.Unraveling => new Unraveling(),
-            AttackActions.Grapple => new Grapple(),
-            AttackActions.Whip => new Whip(),
-            AttackActions.Bite => new Bite(),
-            _ => new Nothing()
+            AttackActions.Grapple    => new Grapple(),
+            AttackActions.Whip       => new Whip(),
+            AttackActions.Bite       => new Bite(),
+            AttackActions.Scratch    => new Scratch(),
+            _                        => new Nothing()
         };
     }
 
@@ -118,6 +121,7 @@ public class InputManager
             AttackActions.Grapple          => new Grapple().Name,
             AttackActions.Whip             => new Whip().Name,
             AttackActions.Nothing          => new Nothing().Name,
+            AttackActions.Scratch          => new Scratch().Name,
             _                              => "Unknown"
         };
     }
@@ -187,7 +191,21 @@ public class InputManager
     public void HumanAction(PartyManager party, DisplayInformation info, TurnManager turn)
     {
         InputManager input = new InputManager();
-        int option = input.OptionsMenuInput(party, info, turn);
+        int? option = null;
+        for (int index = 0; index < turn.CurrentSickPlagueCharacters.Count; index++)
+        {
+            if (turn.CurrentSickPlagueCharacters[index].Character.ID == turn.SelectedCharacter.ID)
+            {
+                if (turn.CurrentSickPlagueCharacters[index].Character.ForcedChoice != null)
+                {
+                    int? value = turn.CurrentSickPlagueCharacters[index].Character.ForcedChoice;
+                    info.DisplayCorrectMenu(value, party, turn, info);
+                    return;
+                }
+            }
+        }
+        option = input.OptionsMenuInput(party, info, turn);
+
 
         if (option == 1)
         {
@@ -224,7 +242,21 @@ public class InputManager
     public void ComputerAction(PartyManager party, TurnManager turn, DisplayInformation info)
     {
         Computer computer = new Computer();
-        int computerChoice = computer.MenuOption(party, turn, info);
+        int? computerChoice = null;
+
+        for (int index = 0; index < turn.CurrentSickPlagueCharacters.Count; index++)
+        { 
+            if (turn.CurrentSickPlagueCharacters[index].Character.ID == turn.SelectedCharacter.ID)
+            {
+                if (turn.CurrentSickPlagueCharacters[index].ForcedChoice != null)
+                {
+                    info.DisplayCorrectMenu(turn.CurrentSickPlagueCharacters[index].ForcedChoice, party, turn, info);
+                    return;
+                }
+            }
+        }
+        
+        computerChoice = computer.MenuOption(party, turn, info);
 
         if (computerChoice == 1)
         {
