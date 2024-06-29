@@ -20,14 +20,6 @@ game.Run();
 // Some lines of the UI, should be written with setCursor so they do not move                   done
 // ObjectSight, TrueProgrammer vs Uncoded, programmer is getting 2 point heals each hit wtf     done
 
-/*
-Choose what to do must be fixed
-Choose action must be fixed
-
-Choose target must be fixed
-
-Choose item must be fixed
-number too
- */
+// Choose what to do must be fixed done, fixed all variations
 
 // Add better colors. One for each thing. No repeating.
