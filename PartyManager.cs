@@ -120,7 +120,7 @@ public class PartyManager
         InputManager input = new InputManager();
         (HeroPlayer, MonsterPlayer) = input.MenuSetter(input.InputMenuOption(menu, info));
 
-        CreateHeroParty(HeroPlayer, new TrueProgrammer(), new VinFletcher(), new MylaraAndSkorin(turn));
+        CreateHeroParty(HeroPlayer, new TrueProgrammer(HeroPlayer), new VinFletcher(), new MylaraAndSkorin(turn));
         CreateMonsterParty(MonsterPlayer, new Skeleton(), new StoneAmarok(), new EvilRobot());
 
         List<Level> levels = LoadLevelsFromFile("Levels.txt", turn);
@@ -174,15 +174,15 @@ public class PartyManager
     public Character GetCharacter(string character, TurnManager turn)
     {
         return character.ToLower() switch
-        {
-            "trueprogrammer" => new TrueProgrammer(),
-            "vinfletcher"    => new VinFletcher(),
-            "skeleton"       => new Skeleton(),
-            "stoneamarok"    => new StoneAmarok(),
-            "uncodedone"     => new UncodedOne(),
-            "shadowoctopoid" => new ShadowOctopoid(),
-            "amarok"         => new Amarok(),
-            "evilrobot"      => new EvilRobot(),
+        {   // It's a problem if we use it before It's been set, since even if It's a Computer it will ask for a name.
+            "trueprogrammer"  => new TrueProgrammer(turn.SelectedCharacter), 
+            "vinfletcher"     => new VinFletcher(),
+            "skeleton"        => new Skeleton(),
+            "stoneamarok"     => new StoneAmarok(),
+            "uncodedone"      => new UncodedOne(),
+            "shadowoctopoid"  => new ShadowOctopoid(),
+            "amarok"          => new Amarok(),
+            "evilrobot"       => new EvilRobot(),
             "mylaraandskorin" => new MylaraAndSkorin(turn),
         };
     }
