@@ -1,28 +1,20 @@
-﻿// More:
-// Heroes
+﻿// there is a current bug going on where if I use MyLara and Skoring name (long name)
+// the program has a problem (there was no space)
+// add something that puts a WriteLine or puts cursor one down and to the beginning when that happens   done
+// The problem of MyLara names is due to how  my ":" spacing is calculated fixed,                       solved
+// added text wrapping for logger                                                                       done
 
-// • More monster types.
-// amarok, Bite, has the rotten side effect, chance to make the opponent skip a turn done
-// new scratch attack not fully implemented,                                         done, fully implemented
-// Bite does not show for Amarok    fixed
 
-// Mylara, implemented Cannon of consolas  done
-// need to fix damage                      done
+// Characters should heal more                      
+// Rot turn skip is not working as intended, turns skip but weirdly   solved done
+// Bug, end message is not displaying?                                solved done
 
-// there is a current bug going on where if I use MyLara and Skoring name (long name) the program has a problem
+// Add default name for computer as TrueProgrammer
+// Add better colors. One for each thing. No repeating.
 // after that, just refactoring
-// and then I'm finally done
+// Console goes down a bit                                                 pseudo-fixed? hacky solution
 
-// evil robot, Smart Misile attack, that attacks at everyone in the party for 1 damage done
-// added evil robot class                                                              done
-// added misile attack                                                                 done
-// need to add it to input data base pending                                           done
-// need to add data for it to damage each player in the party                          done
-// added the logic to damage all enemies in opponent party                             done
+// when the battle ends it doesn't get the chance to print log messages
 
 Game game = new Game();
 game.Run();
-// Console goes down a bit                                                 pseudo-fixed? hacky solution
-
-// Add better colors. One for each thing. No repeating.
-// Add default name for computer as TrueProgrammer
