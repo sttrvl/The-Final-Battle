@@ -63,10 +63,16 @@ public class TurnManager
     public TurnManager(PartyManager party)
     {
         CharacterTurnEnd += UpdateCharacterNumber;
-        PartyTurnEnd += ManagePoisoned;
-        PartyTurnEnd += ManagePlagueSick;
-        PartyTurnEnd += ManagePartyTurns;
+        PartyTurnEnd += ManageTurnEnd;
         party.AdditionalMonsterRound += NextBattle;
+    }
+
+    public void ManageTurnEnd(TurnManager turn, PartyManager party)
+    {
+        
+        ManagePoisoned(turn, party);
+        ManagePlagueSick(turn, party);
+        ManagePartyTurns(turn, party);
     }
 
     public void ManagePartyTurns(TurnManager turn, PartyManager party)
@@ -88,22 +94,20 @@ public class TurnManager
     public void ManagePoisoned(TurnManager turn, PartyManager party)
     {
         GetCurrentPartyTurn(party);
-        if (CurrentPartyTurn == 2)
+        if (Round % 2 == 0)
             if (party.CheckForPoisonedCharacter(turn))
             {
                 party.PoisonCharacter(turn);
-                CurrentPartyTurn = 0;
             }
     }
 
-    // this is weirdly hardcoded
     public void ManagePlagueSick(TurnManager turn, PartyManager party)
     {
-        if (CurrentPartyTurn == 2)
+        GetCurrentPartyTurn(party);
+        if (Round % 2 == 0)
             if (party.CheckForPlagueSickCharacter(turn))
             {
                 party.PlagueSickCharacter(turn);
-                CurrentPartyTurn = 0;
             }
     }
 
@@ -175,10 +179,11 @@ public class TurnManager
             input.UserManager(turn, party, info);
 
             party.DeathManager(party, info, turn);
+            party.ManagePartyDefeated(party, turn, info);
 
             CharacterTurnEnd?.Invoke();
             if (party.CheckForEmptyParties()) break;
-            Thread.Sleep(0);
+            Thread.Sleep(250);
         }
         PartyTurnEnd?.Invoke(turn, party);
     }
