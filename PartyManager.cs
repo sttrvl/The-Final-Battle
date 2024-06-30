@@ -46,7 +46,7 @@ public class PartyManager
     public event Action<PartyManager, TurnManager> AttackInfo;
     public event Action<PartyManager, TurnManager> DefensiveModifierApplied;
     public event Action<PartyManager, TurnManager> OffensiveModifierApplied;
-    public event Action<PartyManager, TurnManager> MonstersDefeated;
+    public event Action<PartyManager, TurnManager> PartyDefeated;
     public event Action<PartyManager, TurnManager> DeathOpponentGearObtained;
 
     public PartyManager()
@@ -120,7 +120,7 @@ public class PartyManager
         InputManager input = new InputManager();
         (HeroPlayer, MonsterPlayer) = input.MenuSetter(input.InputMenuOption(menu, info));
 
-        CreateHeroParty(HeroPlayer, new MylaraAndSkorin(turn), new VinFletcher(), new Amarok());
+        CreateHeroParty(HeroPlayer, new TrueProgrammer(), new VinFletcher(), new MylaraAndSkorin(turn));
         CreateMonsterParty(MonsterPlayer, new Skeleton(), new StoneAmarok(), new EvilRobot());
 
         List<Level> levels = LoadLevelsFromFile("Levels.txt", turn);
@@ -420,7 +420,6 @@ public class PartyManager
             info.DisplayCharacterDeath(turn.CurrentOpponentParty(party), turn.CurrentTarget);
             ManageDeath(party, turn);
         }
-        ManageMonsterDefeated(party, turn);
     }
 
     public bool CheckDeath(TurnManager turn, PartyManager party)
@@ -431,14 +430,25 @@ public class PartyManager
         return false;
     }
 
+    public void ManagePartyDefeated(PartyManager party, TurnManager turn, DisplayInformation info)
+    {
+        if (CheckPartyDefeat(party, party.MonsterPartyList))
+            ManageMonsterDefeated(party, turn);
+        if (CheckPartyDefeat(party, party.HeroPartyList))
+            ManageHeroesDefeated(party, turn, info);
+    }
+
     public void ManageMonsterDefeated(PartyManager party, TurnManager turn)
     {
-        if (CheckMonsterDefeat(party))
-        {
-            TransferDeathMonsterPartyGear(party, turn);
-            TransferDeathMonsterPartyItems(party, turn);
-            NextMonsterParty(turn, party);
-        } 
+        TransferDeathMonsterPartyGear(party, turn);
+        TransferDeathMonsterPartyItems(party, turn);
+        NextMonsterParty(turn, party);
+    }
+
+    public void ManageHeroesDefeated(PartyManager party, TurnManager turn, DisplayInformation info)
+    {
+        if (party.IsPartyEmpty(party.HeroPartyList))
+            PartyDefeated.Invoke(party, turn);
     }
 
     private void TransferDeathMonsterPartyGear(PartyManager party, TurnManager turn)
@@ -470,7 +480,7 @@ public class PartyManager
                 
             AdditionalMonsterLists.RemoveAt(0); // removes "used" monster list
         }
-        MonstersDefeated(party, turn);
+        PartyDefeated?.Invoke(party, turn);
         turn.AdditionalBattleRoundUsed();
     }
 
@@ -505,7 +515,7 @@ public class PartyManager
         DeathOpponentGearObtained.Invoke(party, turn);
     }
 
-    public bool CheckMonsterDefeat(PartyManager party) => party.IsPartyEmpty(party.MonsterPartyList);
+    public bool CheckPartyDefeat(PartyManager party, List<Character> partyList) => party.IsPartyEmpty(partyList);
 
     public bool OptionAvailable(int? choice, TurnManager turn) => !OptionNotAvailable(choice, turn);
 
