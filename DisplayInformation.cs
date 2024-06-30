@@ -13,7 +13,7 @@ public class DisplayInformation
         party.DefensiveModifierApplied  += OnDisplayDefensiveModifierEffects;
         party.AttackMissed              += OnDisplayMissedAttack;
         party.DeathOpponentGearObtained += OnDisplayGearObtained;
-        party.MonstersDefeated          += OnDisplayBattleEnd;
+        party.PartyDefeated             += OnDisplayBattleEnd;
         party.SoulBonus                 += OnDisplaySoulBonus;
         party.CharacterPoisoned         += OnDisplayCharacterPoisoned;
         party.CharacterPlagueSick       += OnDisplayCharacterPlagueSick;
@@ -71,7 +71,6 @@ public class DisplayInformation
             default:
                 turn.CurrentAttack = new Nothing();
                 TurnSkipped?.Invoke(turn);
-                // choice = 0; DEBUG purposes
                 break;
         };
         return (int)choice;
@@ -108,7 +107,9 @@ public class DisplayInformation
     {
         List<ColoredText> colorText = new List<ColoredText>();
         colorText.Add(new ColoredText($"{turn.CurrentOpponentParty(party)[turn.CurrentTarget]}", ConsoleColor.DarkRed));
-        colorText.Add(new ColoredText($" has the rot plague, they will be unable to have their turn.", ConsoleColor.DarkGreen));
+        colorText.Add(new ColoredText($" has the rot plague, ", ConsoleColor.DarkGreen));
+        colorText.Add(new ColoredText($"they will be unable to have their turn", ConsoleColor.DarkGreen));
+        colorText.Add(new ColoredText($".", ConsoleColor.White));
         LogMessages.Add(colorText);
     }
 
@@ -241,7 +242,7 @@ public class DisplayInformation
         List<ColoredText> colorText = new List<ColoredText>();
         colorText.Add(new ColoredText($" - {currentPartyName}'s ", ConsoleColor.White));
         colorText.Add(new ColoredText($" obtained: ", ConsoleColor.Green));
-        colorText.Add(new ColoredText($" {gear.Name}", ConsoleColor.Cyan));
+        colorText.Add(new ColoredText($" {gear.Name} ", ConsoleColor.Cyan));
         colorText.Add(new ColoredText($"in their inventory!", ConsoleColor.DarkRed));
         LogMessages.Add(colorText);
     }
@@ -251,30 +252,31 @@ public class DisplayInformation
         string currentName = turn.CurrentPartyName(party);
         string opponentName = turn.OpponentPartyName(party);
 
-        if (turn.NumberBattleRounds > 0 && turn.CurrentOpponentParty(party) == party.MonsterPartyList)
+        List<ColoredText> colorText = new List<ColoredText>();
+        if (turn.CurrentOpponentParty(party) == party.HeroPartyList)
         {
-            List<ColoredText> colorText = new List<ColoredText>();
-            colorText.Add(new ColoredText($"{opponentName}", ConsoleColor.DarkRed));
-            colorText.Add(new ColoredText($"'s have been defeated. Next battle starting.", ConsoleColor.Cyan));
-            LogMessages.Add(colorText);
+            colorText.Add(new ColoredText($"{currentName}'s", ConsoleColor.Yellow));
+            colorText.Add(new ColoredText($" won!, ", ConsoleColor.Cyan));
+            colorText.Add(new ColoredText($"{opponentName}'s ", ConsoleColor.Red));
+            colorText.Add(new ColoredText($"lost. ", ConsoleColor.Cyan));
+            colorText.Add(new ColoredText($"Uncoded One’s forces have prevailed.", ConsoleColor.Cyan));
         }
-        else if (turn.CurrentCharacterList == party.HeroPartyList)
+        else if (turn.CurrentOpponentParty(party) == party.MonsterPartyList && turn.NumberBattleRounds <= 0)
         {
-            List<ColoredText> colorText = new List<ColoredText>();
             colorText.Add(new ColoredText($"{currentName}", ConsoleColor.Yellow));
             colorText.Add(new ColoredText($"'s won!, ", ConsoleColor.Cyan));
-            colorText.Add(new ColoredText($"{opponentName}", ConsoleColor.Red));
-            colorText.Add(new ColoredText($"'s lost. The Uncoded One was defeated.", ConsoleColor.Cyan));
-            LogMessages.Add(colorText);
+            colorText.Add(new ColoredText($"{opponentName}'s", ConsoleColor.Red));
+            colorText.Add(new ColoredText($" lost. ", ConsoleColor.Cyan));
+            colorText.Add(new ColoredText($"The Uncoded One was defeated.", ConsoleColor.Cyan));
         }
         else
         {
-            List<ColoredText> colorText = new List<ColoredText>();
-            colorText.Add(new ColoredText($"{currentName}", ConsoleColor.Yellow));
-            colorText.Add(new ColoredText($"'s won!, ", ConsoleColor.Cyan));
-            colorText.Add(new ColoredText($"{opponentName}", ConsoleColor.Red));
-            colorText.Add(new ColoredText($"'s lost. Uncoded One’s forces have prevailed.", ConsoleColor.Cyan));
+            colorText.Add(new ColoredText($"{opponentName}'s", ConsoleColor.DarkRed));
+            colorText.Add(new ColoredText($" have been defeated. ", ConsoleColor.Cyan));
+            colorText.Add(new ColoredText($"Next battle starting.", ConsoleColor.Cyan));
         }
+
+        LogMessages.Add(colorText);
     }
 
     public List<List<ColoredText>> LogMessages = new List<List<ColoredText>>();
@@ -285,39 +287,30 @@ public class DisplayInformation
 
     public void PrintColoredTextLines(List<List<ColoredText>> lines)
     {
-        int column = 1;
-        int row = 61;
+        int row = 1;
+        int column = 61;
 
         for (int index = 0; index < lines.Count; index++)
         {
             for (int index2 = 0; index2 < lines[index].Count; index2++)
             {
-                Console.SetCursorPosition(row, column);
+                if (column + lines[index][index2].Text.Length > 117)
+                {
+                    row++;
+                    column = 61;
+                }
+
                 Console.ForegroundColor = lines[index][index2].Color;
+                Console.SetCursorPosition(column, row);
                 Console.Write(lines[index][index2].Text);
-                row += lines[index][index2].Text.Length;
+                column += lines[index][index2].Text.Length;
             }
-            column++;
-            row = 61;
+            row++;
+            column = 61;
 
             if (lines.Count > 25) lines.RemoveAt(0);
         }
         Console.ResetColor();
-    }
-
-    public class BuildColoredText
-    {
-        private List<ColoredText> segments = new List<ColoredText>();
-
-        public void Append(string text, ConsoleColor color)
-        {
-            segments.Add(new ColoredText(text, color));
-        }
-
-        public List<ColoredText> GetColoredTexts()
-        {
-            return segments;
-        }
     }
 
     public class ColoredText
@@ -341,17 +334,6 @@ public class DisplayInformation
         DisplayPartyInfo(party.MonsterPartyList, party, turn);
         Console.SetCursorPosition(0, 20);
         Console.WriteLine($"{new string('═', 60)} \n");
-        DisplayLogMessages();
-    }
-
-    public void DisplayCharacterTurnText(PartyManager party, TurnManager turn)
-    {
-        Console.Clear();
-        InputManager input = new InputManager();
-        DisplayGameStatus(party, turn);
-        DisplayTurnInfo(turn.SelectedCharacter);
-        turn.ManageTaunt(turn);
-        DisplayOptionsMenu(turn);
         for (int i = 0; i < 120; i++)
         {
             Console.SetCursorPosition(i, 0);
@@ -367,8 +349,28 @@ public class DisplayInformation
             Console.SetCursorPosition(60, i);
             Console.WriteLine("|");
         }
+        for (int i = 0; i <= 29; i++)
+        {
+            Console.SetCursorPosition(119, i);
+            Console.WriteLine("|");
+        }
+        for (int i = 0; i <= 29; i++)
+        {
+            Console.SetCursorPosition(0, i);
+            Console.WriteLine("|");
+        }
         Console.SetCursorPosition(0, 0);
+        DisplayLogMessages();
+    }
 
+    public void DisplayCharacterTurnText(PartyManager party, TurnManager turn)
+    {
+        Console.Clear();
+        InputManager input = new InputManager();
+        DisplayGameStatus(party, turn);
+        DisplayTurnInfo(turn.SelectedCharacter);
+        turn.ManageTaunt(turn);
+        DisplayOptionsMenu(turn);
     }
 
     private void DisplayPartyInfo(List<Character> characters, PartyManager party, TurnManager turn)
@@ -392,27 +394,25 @@ public class DisplayInformation
         string secondPadding = CalculateSecondPadding(characterString);
         string gear          = DisplayCurrentGear(character);
         string armor         = DisplayCurrentAmor(character);
-        string health        = DisplayCurrentHealth(character, turn, party);
 
-        Console.Write($@" {characterString}{secondPadding}");
+        Console.Write($@"  {characterString}{secondPadding}");
         Console.ResetColor();
         Console.Write(":");
         string healthBar = DisplayCurrentHealthBar(character, turn, party);
-        Console.Write($" {healthBar}{health}");
+        Console.Write($" {healthBar}");
         Console.ResetColor();
         
         string soulsBar = DisplayCurrentSoulBar(character, turn, party);
         Console.WriteLine($" {soulsBar}");
         Console.ResetColor();
-        Console.WriteLine($@"
-         Weapon      : {gear}
-         Armor       : {armor}                   ");
+        Console.WriteLine($@"                 Weapon : {gear}
+                 Armor  : {armor}");
     }
 
     private string DisplayCurrentSoulBar(Character character, TurnManager turn, PartyManager party)
     {
         Console.ForegroundColor = ConsoleColor.Cyan;
-        string soulBar = "Souls : ";
+        string soulBar = "";
         if (character is Hero)
         {
             if (character.SoulsValue >= 3)
@@ -424,7 +424,7 @@ public class DisplayInformation
             else
                 soulBar += "| | | |";
         }
-        else if (character is Monster)
+        if (character is Monster)
         {
             if (character.SoulsXP >= 3)
                 soulBar = "♦♦♦";
@@ -435,8 +435,6 @@ public class DisplayInformation
             if (character.SoulsXP == 0)
                 soulBar = "°";
         }
-        else
-            soulBar = "";
 
         return soulBar;
     }
@@ -447,7 +445,7 @@ public class DisplayInformation
         foreach (char letter in characterString)
             counter++;
 
-        int padding = 20 - counter; // Fix, this here sometimes returns null with Long character names
+        int padding = 22 - counter; // Fix, this here sometimes returns null with Long character names
         return new string(' ', padding);
     }
 
@@ -456,7 +454,7 @@ public class DisplayInformation
         if (character.ID == turn.SelectedCharacter.ID)
         {
             Console.ForegroundColor = ConsoleColor.Yellow;
-            return $"[ {character.Name,-2} ]";
+            return $"[ {character.Name, -2} ]";
         }
         else
             return $"{character.Name}";
@@ -481,7 +479,7 @@ public class DisplayInformation
     {
         string padding = new string(' ', 1);
 
-        return $"( {character.CurrentHP}/{character.MaxHP} )";
+        return $"{character.CurrentHP}/{character.MaxHP}";
     }
 
     private string DisplayCurrentHealthBar(Character character, TurnManager turn, PartyManager party)
@@ -492,7 +490,7 @@ public class DisplayInformation
         {
             Console.ForegroundColor = ConsoleColor.Red;
             healthBar = "=     ";
-            symbol = "[!]";
+            symbol = $"[!]";
         }
         else if (character.CurrentHP <= character.MaxHP / 3)
         {
@@ -520,7 +518,15 @@ public class DisplayInformation
             Console.ForegroundColor = ConsoleColor.Green;
             healthBar = "======";
         }
-        return $"{healthBar} {symbol}";
+        string healthNumber = DisplayCurrentHealth(character, turn, party);
+
+        string padding = "";
+        if (healthNumber.Length < 5)
+            padding += " ";
+        if (symbol != "[!]")
+            padding += "   ";
+
+        return $"{healthBar} {healthNumber}{symbol}{padding}";
     }
 
     public void DisplayCharacterDeath(List<Character> partyList, int target)
