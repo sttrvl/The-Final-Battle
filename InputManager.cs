@@ -39,9 +39,9 @@ public class InputManager
             AttackActions.Whip           => new Whip(),
             AttackActions.Bite           => new Bite(),
             AttackActions.Scratch        => new Scratch(),
-            AttackActions.CorruptRockets => new CorruptRockets(),
+            AttackActions.SmartRockets => new SmartRockets(),
             _                            => new Nothing()
-        };;;
+        };
     }
 
     Gear? GetGear(Gear? weapon, TurnManager turn)
@@ -136,7 +136,7 @@ public class InputManager
             AttackActions.Whip             => new Whip().Name,
             AttackActions.Nothing          => new Nothing().Name,
             AttackActions.Scratch          => new Scratch().Name,
-            AttackActions.CorruptRockets   => new CorruptRockets().Name,
+            AttackActions.SmartRockets   => new SmartRockets().Name,
             _                              => "Unknown"
         };
     }
