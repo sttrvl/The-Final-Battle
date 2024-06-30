@@ -302,15 +302,15 @@ public abstract class AreaAttack : AttackAction
 
 }
 
-public class CorruptRockets : AreaAttack
+public class SmartRockets : AreaAttack
 {
-    public CorruptRockets()
+    public SmartRockets()
     {
         AttackDamage = 1;
         AttackProbability = 0.75;
-        Name = "Corrupt Rockets";
+        Name = "Smart Rockets";
     }
-    public override AttackActions Execute() => AttackActions.CorruptRockets;
+    public override AttackActions Execute() => AttackActions.SmartRockets;
 }
 
 public abstract class MenuOption : IMenuAction<MenuOptions>
@@ -406,7 +406,7 @@ public enum AttackActions
     Grapple,
     Whip,
     Scratch,
-    CorruptRockets,
+    SmartRockets,
     CannonBall
 }
 
