@@ -1,4 +1,7 @@
-﻿public class Game
+﻿using System.Data.Common;
+using System.Security.Cryptography.X509Certificates;
+
+public class Game
 {
     public void Run()
     {
@@ -17,19 +20,17 @@
 
         while (!party.CheckForEmptyParties())
         {
+            
             turn.PartyTurnSetUp(party);
 
             turn.RunCurrentParty(turn, info, party);
             turn.CheckForNextRound(party);
+            
             turn.AdvanceToNextParty();
-
-            CheckHeroLost();
         }
-
-        void CheckHeroLost()
-        {
-            if (party.IsPartyEmpty(party.HeroPartyList))
-                info.OnDisplayBattleEnd(party, turn);
-        }
+        info.DisplayCharacterTurnText(party, turn);
+        EndOfProgramCursorPosition();
     }
+
+    void EndOfProgramCursorPosition() => Console.SetCursorPosition(0, 30);
 }
