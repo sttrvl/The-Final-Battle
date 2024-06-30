@@ -129,15 +129,23 @@ public class TrueProgrammer : Hero // if this is a computer, default name should
 {
     public int DefaultMaxHP { get; } = 25;
 
-    public TrueProgrammer()
+    public TrueProgrammer(Character characterType)
     {
         MaxHP = DefaultMaxHP;
         CurrentHP = MaxHP;
         Weapon = new Sword();
-        InputManager manageInput = new InputManager();
-        Name = manageInput.AskUser("What's your character's name?");
+        Name = DefineName(characterType);
         DefensiveAttackModifier = new ObjectSight();
         StandardAttack = AttackActions.Punch;
+    }
+
+    public string DefineName(Character characterType)
+    {
+        InputManager manageInput = new InputManager();
+        if (characterType is Computer)
+            return new Computer().Name;
+        else
+            return manageInput.AskUser("What's your character's name?");
     }
 }
 
@@ -261,7 +269,7 @@ public class EvilRobot : Monster
         MaxHP = DefaultMaxHP;
         CurrentHP = MaxHP;
         Name = "Evil Robot";
-        StandardAttack = AttackActions.CorruptRockets;
+        StandardAttack = AttackActions.SmartRockets;
         SoulsXP = 2;
     }
 }
