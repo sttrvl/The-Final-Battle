@@ -183,7 +183,7 @@ public class TurnManager
 
             CharacterTurnEnd?.Invoke();
             if (party.CheckForEmptyParties()) break;
-            Thread.Sleep(250);
+            Thread.Sleep(500);
         }
         PartyTurnEnd?.Invoke(turn, party);
     }
