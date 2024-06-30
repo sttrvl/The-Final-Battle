@@ -166,7 +166,7 @@ public class MylaraAndSkorin : Hero // consider separating these
     {
         MaxHP = DefaultMaxHP;
         CurrentHP = MaxHP;
-        Name = "Mylara";
+        Name = "Mylara And Skorin";
         StandardAttack = AttackActions.Punch;
         Weapon = new CannonOfConsolas(turn);
     }
