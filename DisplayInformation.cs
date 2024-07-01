@@ -1,4 +1,6 @@
-﻿using System.IO;
+﻿using System.Data.Common;
+using System;
+using System.IO;
 using System.Security.Cryptography.X509Certificates;
 using static DisplayInformation;
 using static System.Net.Mime.MediaTypeNames;
@@ -60,7 +62,7 @@ public class DisplayInformation
                 info.DisplayActionList(party, turn);
                 break;
             case 2:
-                info.DisplayCurrentInventoryItems(turn.CurrentItemInventory(party));
+                info.DisplayCurrentInventoryItems(turn.GetCurrentItemInventory(party));
                 break;
             case 3:
                 if (party.OptionNotAvailable(choice, turn) == false)
@@ -271,9 +273,9 @@ public class DisplayInformation
         Gear gear = turn.CurrentOpponentParty(party)[turn.CurrentTarget].Weapon!;
         List<ColoredText> colorText = new List<ColoredText>
         {
-            new ColoredText($" - {turn.CurrentPartyName(party)}'s ", PartyColor(party, turn.CurrentParty(party))),
+            new ColoredText($" - {turn.CurrentPartyName(party)}'s", PartyColor(party, turn.CurrentParty(party))),
             new ColoredText($" obtained: ", ConsoleColor.Green),
-            new ColoredText($" {gear.Name} ", GearColor(gear)),
+            new ColoredText($"{gear.Name} ", GearColor(gear)),
             new ColoredText($"in their inventory!", ConsoleColor.White)
         };
         LogMessages.Add(colorText);
@@ -612,11 +614,20 @@ public class DisplayInformation
     { // This has potential for re-use but I'm not sure how I would go from Consumables to Gear or any other (w/o object)
         int count = 0;
         ClearMenu();
-        Console.SetCursorPosition(1, 23);
+        int column = 1;
+        int row = 23;
+        
         foreach (Consumables item in currentItems)
         {
-            Console.WriteLine($" -{item}({count}) ");
-            Console.SetCursorPosition(1, Console.CursorTop);
+            string message = $"*{item.Name} ({count}) ";
+            if (column + message.Length > 60)
+            {
+                row++;
+                column = 1;
+            }
+            Console.SetCursorPosition(column, row);
+            Console.Write(message); // DEBUG
+            column += message.Length;
             count++;
         }
     }
@@ -674,11 +685,20 @@ public class DisplayInformation
     private void DisplayGearInInventory(List<Gear> currentGearInventory)
     { // This has potential for re-use but I'm not sure how I would go from Consumables to Gear or any other (w/o object), maybe structuring it differently
         int count = 0;
-        Console.SetCursorPosition(1, 23);
-        foreach (Gear gear in currentGearInventory)
+        int column = 1;
+        int row = 23;
+
+        foreach (Gear? item in currentGearInventory)
         {
-            Console.WriteLine($"{count} - {gear}");
-            Console.SetCursorPosition(1, Console.CursorTop);
+            string message = $"*{item.Name} ({count}) ";
+            if (column + message.Length > 60)
+            {
+                row++;
+                column = 1;
+            }
+            Console.SetCursorPosition(column, row);
+            Console.Write(message); // DEBUG
+            column += message.Length;
             count++;
         }
     }
@@ -689,7 +709,7 @@ public class DisplayInformation
         {
             List<ColoredText> colorText = new List<ColoredText>
             {
-                new ColoredText($"{turn.SelectedCharacter} ", CharacterColor(turn.SelectedCharacter)),
+                new ColoredText($"{turn.SelectedCharacter}", CharacterColor(turn.SelectedCharacter)),
                 new ColoredText($" equipped ", ConsoleColor.White),
                 new ColoredText($"{turn.SelectedCharacter.Armor}", GearColor(turn.SelectedCharacter.Armor)),
                 new ColoredText($".", ConsoleColor.White)
@@ -701,7 +721,7 @@ public class DisplayInformation
         {
             List<ColoredText> colorText = new List<ColoredText>
             {
-                new ColoredText($"{turn.SelectedCharacter} ", CharacterColor(turn.SelectedCharacter)),
+                new ColoredText($"{turn.SelectedCharacter}", CharacterColor(turn.SelectedCharacter)),
                 new ColoredText($" equipped ", ConsoleColor.White),
                 new ColoredText($"{turn.SelectedCharacter.Weapon}", GearColor(turn.SelectedCharacter.Weapon)),
                 new ColoredText($".", ConsoleColor.White)
@@ -753,6 +773,7 @@ public class DisplayInformation
         return item switch
         {
             HealthPotion => ConsoleColor.Red,
+            SimulasSoup  => ConsoleColor.DarkYellow,
             _ => ConsoleColor.Magenta
         };
     }
