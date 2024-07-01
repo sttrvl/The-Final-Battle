@@ -55,7 +55,7 @@ public class SimulasSoup : Consumables
         Heal = turn.SelectedCharacter.MaxHP;
     }
 
-    public override ConsumableItem Execute() => ConsumableItem.HealthPotion;
+    public override ConsumableItem Execute() => ConsumableItem.SimulasSoup;
 }
 
 public abstract class Gear : AttackAction, IInventoryObject
@@ -441,7 +441,8 @@ public enum AttackTemporaryEffects
 
 public enum ConsumableItem
 {
-    HealthPotion
+    HealthPotion,
+    SimulasSoup
 }
 
 public enum MenuOptions
