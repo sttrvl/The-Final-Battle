@@ -100,8 +100,8 @@ public class Computer : Character
 
         Character character = turn.SelectedCharacter;
         List<Consumables> itemInventory = turn.GetCurrentItemInventory(party);
-        if (itemInventory.Any(x => x is Consumables) && character?.CurrentHP < character?.MaxHP / 2 && randomNumber < 90)
-        {
+        if (itemInventory.Any(x => x is Consumables) && character?.CurrentHP < character?.MaxHP / 4 && randomNumber < 90)
+        { // Testing: / 4
             computerChoice = 2; // use item
         }
         else if (character?.Weapon == null && turn.CurrentGearInventory.Count >= 1 && randomNumber < 50)
