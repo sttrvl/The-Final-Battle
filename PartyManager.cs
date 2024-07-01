@@ -110,22 +110,23 @@ public class PartyManager
         if (turn.GetCurrentItemInventory(this).Count > 0) turn.GetCurrentItemInventory(this).RemoveAt(turn.ConsumableSelectedNumber);
     }
 
-    public void SetUpParties(List<MenuOption> menu, DisplayInformation info, TurnManager turn)
+    public void SetUpParties(List<MenuOption> menu, DisplayInformation info, TurnManager turn, PartyManager party)
     {
-        PartySetUpSettings(menu, info, turn);
+        PartySetUpSettings(menu, info, turn, party);
         Console.Clear();
     }
 
     public record Level(Consumables? item, int itemAmount, Gear? Extragear, int gearAmount,
                         Gear? equippedGearChoice,          params Character[] characters);
 
-    public void PartySetUpSettings(List<MenuOption> menu, DisplayInformation info, TurnManager turn)
+    public void PartySetUpSettings(List<MenuOption> menu, DisplayInformation info, TurnManager turn, PartyManager party)
     {
         InputManager input = new InputManager();
         (HeroPlayer, MonsterPlayer) = input.MenuSetter(input.InputMenuOption(menu, info));
+        turn.SelectedPlayerType = HeroPlayer;
 
-        CreateHeroParty(HeroPlayer, new TrueProgrammer(HeroPlayer), new VinFletcher(), new MylaraAndSkorin(turn));
-        CreateMonsterParty(MonsterPlayer, new Skeleton(), new StoneAmarok(), new EvilRobot());
+        //CreateHeroParty(HeroPlayer, new TrueProgrammer(HeroPlayer), new VinFletcher(), new MylaraAndSkorin(turn));
+        //CreateMonsterParty(MonsterPlayer, new Skeleton(), new StoneAmarok(), new EvilRobot());
 
         List<Level> levels = LoadLevelsFromFile("Levels.txt", turn);
         Dictionary<Character, Gear> noGear = new Dictionary<Character, Gear>();
@@ -169,7 +170,7 @@ public class PartyManager
 
             for (int index = 0; index < currentGearChoices.Count; index++)
             {
-                AddMonsterRound(currentGearChoices[0], RetriveCharactersWithGear(currentGearChoices[0]));
+                AddRound(currentGearChoices[0], RetriveCharactersWithGear(currentGearChoices[0]), party);
             }
         }
     }
@@ -220,6 +221,7 @@ public class PartyManager
             "cannonofconsolas" => new CannonOfConsolas(turn),
             "binaryHelm"       => new BinaryHelm(),
             "nogear"           => null,
+            "default"          => default, // DEBUG
             _                  => null
         };
     }
@@ -228,7 +230,7 @@ public class PartyManager
     {
         return character.ToLower() switch
         {   // It's a problem if we use it before It's been set, since even if It's a Computer it will ask for a name.
-            "trueprogrammer"  => new TrueProgrammer(turn.SelectedCharacter), 
+            "trueprogrammer"  => new TrueProgrammer(turn.SelectedPlayerType), 
             "vinfletcher"     => new VinFletcher(),
             "skeleton"        => new Skeleton(),
             "stoneamarok"     => new StoneAmarok(),
@@ -256,24 +258,29 @@ public class PartyManager
             MonsterPartyList.Add(character);
     }
 
-    public (List<Character>, Character) CreatePlayer(List<Character> newParty, Character partyType)
-    {
-        return (newParty, partyType);
-    }
+    public (List<Character>, Character) CreatePlayer(List<Character> newParty, Character partyType) => (newParty, partyType);
 
-    public void AdditionalItems()
-    {
-
-    }
-
-    public void AddMonsterRound(Dictionary<Character, Gear?> gearChoices, List<Character> characterList)
-    {
+    public void AddRound(Dictionary<Character, Gear?> gearChoices, List<Character> characterList, PartyManager party)
+    {        
         foreach (Character character in characterList)
-            if (gearChoices.ContainsKey(character))
+            if (gearChoices.ContainsKey(character) && gearChoices[character] != default)
                 character.Weapon = gearChoices[character];
 
-        AdditionalMonsterLists.Add(characterList);
-        AdditionalMonsterRound?.Invoke();
+        if (party.IsPartyEmpty(party.HeroPartyList))
+        {
+            foreach (Character character in characterList)
+                HeroPartyList.Add(character);
+        }
+        else if (party.IsPartyEmpty(party.MonsterPartyList))
+        {
+            foreach (Character character in characterList)
+                MonsterPartyList.Add(character);
+        }
+        else
+        {
+            AdditionalMonsterLists.Add(characterList);
+            AdditionalMonsterRound?.Invoke();
+        }
     }
 
     public Dictionary<Character, Gear?> SetUpCharacterWithGear(Gear? gearType, params Character[] characterType)

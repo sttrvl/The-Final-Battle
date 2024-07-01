@@ -16,7 +16,7 @@ public class Game
             new PlayerVsPlayer()
         };
 
-        party.SetUpParties(menuList, info, turn);        
+        party.SetUpParties(menuList, info, turn, party);        
 
         while (!party.CheckForEmptyParties())
         {
