@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-using System.IO;
-using static TurnManager;
+﻿using static TurnManager;
 
 public class PartyManager
 {
@@ -16,31 +14,17 @@ public class PartyManager
     public List<Character> MonsterPartyList { get; set; } = new List<Character>();
     public List<List<Character>> AdditionalMonsterLists { get; set; } = new List<List<Character>>();
 
-    public List<Gear?> HeroGearInventory = new List<Gear?>()
-    {
-        new BinaryHelm(), new BinaryHelm(), new BinaryHelm()
-    };
+    public List<Gear?> HeroGearInventory = new List<Gear?>();
 
-    public List<Gear?> MonsterGearInventory = new List<Gear?>()
-    {
-        new Dagger()
-    };
+    public List<Gear?> MonsterGearInventory = new List<Gear?>();
 
     public List<List<Consumables>?> AdditionalItemLists { get; set; } = new List<List<Consumables>?>();
 
-    public List<List<Gear>> AdditionalGearLists { get; set; } = new List<List<Gear>>(); 
-    // not used but has potential to be used
+    public List<List<Gear>> AdditionalGearLists { get; set; } = new List<List<Gear>>();
 
-    public List<Consumables> HeroesItemInventory { get; set; } = new List<Consumables>()
-    {
-        new HealthPotion(), new HealthPotion(), new HealthPotion(),
-        new HealthPotion(), new HealthPotion(), new HealthPotion(),
-    };
+    public List<Consumables> HeroItemInventory { get; set; } = new List<Consumables>();
 
-    public List<Consumables> MonstersItemInventory { get; set; } = new List<Consumables>()
-    {
-        new HealthPotion()
-    };
+    public List<Consumables> MonsterItemInventory { get; set; } = new List<Consumables>();
 
     public event Action AdditionalMonsterRound;
     public event Action<TurnManager> ConsumableItemUsed;
@@ -116,7 +100,7 @@ public class PartyManager
         Console.Clear();
     }
 
-    public record Level(Consumables? item, int itemAmount, Gear? Extragear, int gearAmount,
+    public record Level(Consumables? ExtraItemType, int itemAmount, Gear? ExtraGearType, int gearAmount,
                         Gear? equippedGearChoice,          params Character[] characters);
 
     public void PartySetUpSettings(List<MenuOption> menu, DisplayInformation info, TurnManager turn, PartyManager party)
@@ -130,8 +114,6 @@ public class PartyManager
 
         List<Level> levels = LoadLevelsFromFile("Levels.txt", turn);
         Dictionary<Character, Gear> noGear = new Dictionary<Character, Gear>();
-        // AddMonsterRound(noGear, new StoneAmarok(), new StoneAmarok());
-        // AddMonsterRound(noGear, new UncodedOne());
 
         foreach (Level level in levels)
         {
@@ -141,36 +123,12 @@ public class PartyManager
             else
                 currentGearChoices.Add(SetUpCharacterWithGear(null, level.characters));
 
-            if (level.Extragear != null)
-            {
-                List<Gear> gear = new List<Gear>();
-                for (int index = 0; index < level.gearAmount; index++)
-                    gear.Add(level.Extragear);
-
-                AdditionalGearLists.Add(gear);
-            }
-            else
-            {
-                AdditionalGearLists.Add(new List<Gear>());
-            }
-
-            if (level.item != null)
-            {
-                List<Consumables> items = new List<Consumables>();
-
-                for (int index = 0; index < level.itemAmount; index++)
-                    items.Add(level.item);
-
-                AdditionalItemLists.Add(items);
-            }
-            else
-            {
-                AdditionalItemLists.Add(new List<Consumables>());
-            }
+            // ok so HeroGearInventoryGets added
 
             for (int index = 0; index < currentGearChoices.Count; index++)
             {
-                AddRound(currentGearChoices[0], RetriveCharactersWithGear(currentGearChoices[0]), party);
+                AddRound(currentGearChoices[0], RetriveCharactersWithGear(currentGearChoices[0]), party, 
+                         level.ExtraItemType, level.itemAmount, level.ExtraGearType, level.gearAmount);
             }
         }
     }
@@ -219,7 +177,7 @@ public class PartyManager
             "dagger"           => new Dagger(),
             "vinsbow"          => new VinsBow(),
             "cannonofconsolas" => new CannonOfConsolas(turn),
-            "binaryHelm"       => new BinaryHelm(),
+            "binaryhelm"       => new BinaryHelm(),
             "nogear"           => null,
             "default"          => default, // DEBUG
             _                  => null
@@ -260,27 +218,68 @@ public class PartyManager
 
     public (List<Character>, Character) CreatePlayer(List<Character> newParty, Character partyType) => (newParty, partyType);
 
-    public void AddRound(Dictionary<Character, Gear?> gearChoices, List<Character> characterList, PartyManager party)
-    {        
-        foreach (Character character in characterList)
-            if (gearChoices.ContainsKey(character) && gearChoices[character] != default)
-                character.Weapon = gearChoices[character];
+    public void AddRound(Dictionary<Character, Gear?> gearChoices, List<Character> characterList, PartyManager party, 
+                         Consumables itemType, int itemAmount, Gear? gearType, int gearAmount)
+    {
+        AddGearChoices(gearChoices, characterList);
 
         if (party.IsPartyEmpty(party.HeroPartyList))
         {
             foreach (Character character in characterList)
                 HeroPartyList.Add(character);
+
+            if (gearType != null && gearAmount > 0)
+                for (int index = 0; index < gearAmount; index++)
+                    party.HeroGearInventory.Add(gearType);
+
+            if (itemType != null && itemAmount > 0)
+                for (int index = 0; index < itemAmount; index++)
+                    party.HeroItemInventory.Add(itemType);
         }
         else if (party.IsPartyEmpty(party.MonsterPartyList))
         {
             foreach (Character character in characterList)
                 MonsterPartyList.Add(character);
+
+            if (gearType != null && gearAmount > 0)
+                for (int index = 0; index < gearAmount; index++)
+                    party.MonsterGearInventory.Add(gearType);
+
+            if (itemType != null && itemAmount > 0)
+                for (int index = 0; index < itemAmount; index++)
+                    party.MonsterItemInventory.Add(itemType);
         }
         else
         {
+            List<Gear> gearList = new List<Gear>();
+            for (int index = 0; index < gearAmount; index++)
+                gearList.Add(gearType);
+
+            if (gearType != null && gearAmount > 0)
+                party.AdditionalGearLists.Add(gearList);
+            else
+                AdditionalGearLists.Add(new List<Gear>());
+
+            List<Consumables> itemList = new List<Consumables>();
+            for (int index = 0; index < itemAmount; index++)
+                itemList.Add(itemType);
+
+            if (itemType != null && itemAmount > 0)
+                party.AdditionalItemLists.Add(itemList);
+            else
+                AdditionalItemLists.Add(new List<Consumables>());
+
+
             AdditionalMonsterLists.Add(characterList);
             AdditionalMonsterRound?.Invoke();
         }
+    }
+
+    private void AddGearChoices(Dictionary<Character, Gear?> gearChoices, List<Character> characterList)
+    {
+        foreach (Character character in characterList)
+            if (gearChoices.ContainsKey(character) && gearChoices[character] != default)
+                character.Weapon = gearChoices[character];
     }
 
     public Dictionary<Character, Gear?> SetUpCharacterWithGear(Gear? gearType, params Character[] characterType)
@@ -518,8 +517,12 @@ public class PartyManager
 
     private void TransferDeathMonsterPartyGear(PartyManager party, TurnManager turn)
     {
-        foreach (Gear? gear in MonsterGearInventory)
-            HeroGearInventory.Add(gear);
+        for (int index = 0; index < MonsterGearInventory.Count; index++)
+        {
+            HeroGearInventory.Add(MonsterGearInventory[index]);
+            MonsterGearInventory.Remove(MonsterGearInventory[index]);
+        }
+        
         GearObtained?.Invoke(turn, party);
     }
 
@@ -528,16 +531,17 @@ public class PartyManager
     private void TransferDeathMonsterPartyItems(PartyManager party, TurnManager turn)
     {
         string message = "";
-        foreach (Consumables item in MonstersItemInventory)
-            HeroesItemInventory.Add(item);
-
+        for (int index = 0; index < MonsterItemInventory.Count; index++)
+        {
+            HeroItemInventory.Add(MonsterItemInventory[index]);
+            MonsterItemInventory.Remove(MonsterItemInventory[index]);
+        }
+            
         ItemsObtained?.Invoke(turn, party);
     }
 
     public event Action<TurnManager, PartyManager> ItemsObtained;
 
-    // We got a potential issue, the number of monster list needs to match the gearList, so we potentially need to
-    // add a placeholder to the gear list if It's empty or whatever
     public void NextMonsterParty(TurnManager turn, PartyManager party)
     {
         if (turn.NumberBattleRounds > 0)
@@ -548,17 +552,18 @@ public class PartyManager
                     MonsterPartyList.Add(character);
 
                 AdditionalMonsterLists.RemoveAt(0); // removes "used" monster list
-                if (AdditionalGearLists.Count > 0)
+
+                if (AdditionalGearLists.Count > 0) // count is 4
                 {
-                    foreach (Gear gear in AdditionalGearLists[0])
+                    foreach (Gear gear in AdditionalGearLists[0]) // good, all count 0
                         MonsterGearInventory.Add(gear);
                 }
                 AdditionalGearLists.RemoveAt(0);
 
-                if (AdditionalItemLists.Count > 0)
+                if (AdditionalItemLists.Count > 0) // 6 when there should be 4
                 {
-                    foreach (Consumables items in AdditionalItemLists[0])
-                        MonstersItemInventory.Add(items);
+                    foreach (Consumables items in AdditionalItemLists[0]) 
+                        MonsterItemInventory.Add(items);
                 }
                 AdditionalItemLists.RemoveAt(0);
             }

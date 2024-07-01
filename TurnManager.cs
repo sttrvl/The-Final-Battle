@@ -134,7 +134,7 @@ public class TurnManager
     public List<Consumables> GetCurrentItemInventory(PartyManager party)
     {
         return CurrentItemList = 
-            CurrentCharacterList == party.HeroPartyList ? party.HeroesItemInventory : party.MonstersItemInventory;
+            CurrentCharacterList == party.HeroPartyList ? party.HeroItemInventory : party.MonsterItemInventory;
     }
 
 
