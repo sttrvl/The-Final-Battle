@@ -1,11 +1,4 @@
-﻿using System.Data.Common;
-using System;
-using System.IO;
-using System.Security.Cryptography.X509Certificates;
-using static DisplayInformation;
-using static System.Net.Mime.MediaTypeNames;
-
-public class DisplayInformation
+﻿public class DisplayInformation
 {
     public DisplayInformation(PartyManager party, TurnManager turn)
     {
@@ -35,7 +28,7 @@ public class DisplayInformation
             new ColoredText($"{turn.CurrentPartyName(party)}'s", PartyColor(party, turn.CurrentParty(party))),
             new ColoredText($" obtained: ", ConsoleColor.Green)
         };
-        foreach (Consumables item in party.MonstersItemInventory)
+        foreach (Consumables item in party.MonsterItemInventory)
             colorText.Add(new ColoredText($"{item} ", ItemColor(item)));
 
         LogMessages.Add(colorText);
@@ -62,11 +55,11 @@ public class DisplayInformation
                 info.DisplayActionList(party, turn);
                 break;
             case 2:
-                info.DisplayCurrentInventoryItems(turn.GetCurrentItemInventory(party));
+                info.DisplayCurrentInventoryItems(turn.GetCurrentItemInventory(party), info);
                 break;
             case 3:
-                if (party.OptionNotAvailable(choice, turn) == false)
-                    info.DisplayCurrentGearInventory(turn.CurrentGearInventory);
+                // if (party.OptionAvailable(choice, turn)) redundant
+                info.DisplayCurrentGearInventory(turn.CurrentGearInventory, info);
                 break;
             case 0:
             default:
@@ -104,7 +97,7 @@ public class DisplayInformation
         List<ColoredText> colorText = new List<ColoredText>();
         Character currentTarget = turn.CurrentOpponentParty(party)[turn.CurrentTarget];
         colorText.Add(new ColoredText($"{currentTarget}", CharacterColor(currentTarget)));
-        colorText.Add(new ColoredText($"was poisoned!", ConsoleColor.DarkGreen));
+        colorText.Add(new ColoredText($" was poisoned!", ConsoleColor.DarkGreen));
         LogMessages.Add(colorText);
     }
 
@@ -402,7 +395,7 @@ public class DisplayInformation
         DisplayGameStatus(party, turn);
         DisplayTurnInfo(turn.SelectedCharacter);
         turn.ManageTaunt(turn);
-        DisplayOptionsMenu(turn);
+        DisplayOptionsMenu();
     }
 
     private void DisplayPartyInfo(List<Character> characters, PartyManager party, TurnManager turn)
@@ -461,11 +454,11 @@ public class DisplayInformation
             if (character.SoulsXP >= 3)
                 soulBar = "♦♦♦";
             else if (character.SoulsXP >= 2)
-                soulBar = "♦♦";
+                soulBar = " ♦♦";
             else if (character.SoulsXP >= 1)
-                soulBar = "♦";
+                soulBar = "  ♦";
             if (character.SoulsXP == 0)
-                soulBar = "°";
+                soulBar = "  °";
         }
 
         return soulBar;
@@ -579,7 +572,7 @@ public class DisplayInformation
             Console.WriteLine($"{index} - {menu[index].Name}");
     }
 
-    public void DisplayOptionsMenu(TurnManager turn)
+    public void DisplayOptionsMenu()
     {
         List<MenuOption> menuList = new List<MenuOption>()
         {
@@ -588,26 +581,32 @@ public class DisplayInformation
             new UseItem(),
             new EquipGear()
         };
-
         
         int row = 23;
         for (int index = 0; index < menuList.Count; index++)
         {
             Console.SetCursorPosition(1, row);
-            if (menuList[index] is not EquipGear)
+            //if (menuList[index] is not EquipGear)
                 Console.WriteLine($"{index} - {menuList[index].Name}");
-            else if (turn.CurrentGearInventory.Count > 0)
-                Console.WriteLine($"{index} - {menuList[index].Name}");
+            //else if (turn.CurrentGearInventory.Count > 0)
+               //Console.WriteLine($"{index} - {menuList[index].Name}");
             row++;
         }
     }
 
-    public void DisplayCurrentInventoryItems(List<Consumables> currentItems)
+    public void DisplayCurrentInventoryItems(List<Consumables> currentItems, DisplayInformation info)
     {
+        ClearMenu();
         if (currentItems.Count > 0)
             DisplayConsumables(currentItems);
         else
-            Console.WriteLine("No items!");
+        {
+            info.DisplayOptionsMenu();
+            Console.SetCursorPosition(17, 25);
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine("[!] Your item inventory is empty!");
+            Console.ResetColor();
+        }   
     }
 
     private void DisplayConsumables(List<Consumables> currentItems)
@@ -671,15 +670,22 @@ public class DisplayInformation
         Console.WriteLine($"It's {currentCharacter}'s turn...");
     }
 
-
-    public void DisplayCurrentGearInventory(List<Gear?> currentGearInventory)
+    public void DisplayCurrentGearInventory(List<Gear?> currentGearInventory, DisplayInformation info)
     {
         ClearMenu();
-        Console.SetCursorPosition(1, 23);
         if (currentGearInventory.Count > 0)
+        {
+            Console.SetCursorPosition(1, 23);
             DisplayGearInInventory(currentGearInventory);
+        }
         else
-            Console.WriteLine("No items!");
+        {
+            info.DisplayOptionsMenu();
+            Console.SetCursorPosition(17, 26);
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine("[!] Your gear inventory is empty!");
+            Console.ResetColor();
+        }   
     }
 
     private void DisplayGearInInventory(List<Gear> currentGearInventory)
