@@ -229,7 +229,7 @@ public class InputManager
         }
         if (option == 2)
         {
-            if (turn.CurrentItemInventory(party).Count == 0)
+            if (turn.GetCurrentItemInventory(party).Count == 0)
             {
                 UserManager(turn, party, info);
                 return;
@@ -280,7 +280,7 @@ public class InputManager
         }
         if (computerChoice == 2)
         {
-            computer.SelectItem(turn.CurrentItemInventory(party), turn);
+            computer.SelectItem(turn.GetCurrentItemInventory(party), turn);
             ManageInputItem(turn, party);
         }
         if (computerChoice == 3)
@@ -302,8 +302,8 @@ public class InputManager
     
     public void ChooseInputItem(TurnManager turn, PartyManager party)
     {
-        turn.ConsumableSelectedNumber = ChooseOption("Choose an item:", turn.CurrentItemInventory(party).Count);
-        turn.ConsumableSelected = turn.CurrentItemInventory(party)[turn.ConsumableSelectedNumber];
+        turn.ConsumableSelectedNumber = ChooseOption("Choose an item:", turn.GetCurrentItemInventory(party).Count);
+        turn.ConsumableSelected = turn.GetCurrentItemInventory(party)[turn.ConsumableSelectedNumber];
     }
 
     public int ChooseOption(string prompt, int maxIndex)
