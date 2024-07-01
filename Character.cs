@@ -98,15 +98,18 @@ public class Computer : Character
         int randomNumber = new Random().Next(100);
         int computerChoice = 0;
 
-        if (turn.CurrentItemInventory(party).Any(x => x is Consumables) 
-            && turn.SelectedCharacter?.CurrentHP < turn.SelectedCharacter?.MaxHP / 2)
-            if (randomNumber < 25)
-                computerChoice = 2; // use item
-        if (turn.SelectedCharacter?.Weapon == null && turn.CurrentGearInventory.Count >= 1)
-            if (randomNumber < 50)
-                computerChoice =  3; // equip gear
-        if (randomNumber < 90)       // attack
-            computerChoice = 1;
+        Character character = turn.SelectedCharacter;
+        List<Consumables> itemInventory = turn.GetCurrentItemInventory(party);
+        if (itemInventory.Any(x => x is Consumables) && character?.CurrentHP < character?.MaxHP / 2 && randomNumber < 90)
+        {
+            computerChoice = 2; // use item
+        }
+        else if (character?.Weapon == null && turn.CurrentGearInventory.Count >= 1 && randomNumber < 50)
+        {
+            computerChoice = 3; // equip gear  
+        }
+        else if (randomNumber < 90)
+            computerChoice = 1; // attack
 
         info.DisplayCorrectMenu(computerChoice, party, turn, info);
         return computerChoice;
