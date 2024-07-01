@@ -99,10 +99,7 @@ public class InputManager
             inputTarget = opponentPartyCount == 1 ? 0 : ChooseOption("Choose a target:", opponentPartyCount);
         }
         
-
-
         turn.CurrentTarget = (int)inputTarget;
-        
     }
 
     public List<AttackActions> ActionAvailableCheck(PartyManager party, TurnManager turn)
@@ -189,7 +186,6 @@ public class InputManager
         foreach (CharacterOptions o in Enum.GetValues(typeof(CharacterOptions)))
             options++;
 
-        
         int? choice = ChooseOption("Choose what to do:", options);
 
         return info.DisplayCorrectMenu((int)choice, party, turn, info);
@@ -219,8 +215,8 @@ public class InputManager
                 }
             }
         }
-        option = input.OptionsMenuInput(party, info, turn);
 
+        option = input.OptionsMenuInput(party, info, turn);
 
         if (option == 1)
         {
