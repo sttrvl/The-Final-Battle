@@ -1,9 +1,4 @@
-﻿using System;
-using System.IO;
-using System.Reflection.Metadata.Ecma335;
-using System.Text.RegularExpressions;
-
-public abstract class Character
+﻿public abstract class Character
 {
     public Guid ID { get; } = Guid.NewGuid();
     public string Name { get; set; } = "Character";
