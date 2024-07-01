@@ -8,6 +8,8 @@ public class TurnManager
     private int CharacterNumber { get; set; } = 0;
     public Character SelectedPlayerType { get; set; }
     public List<Character> CurrentCharacterList { get; set; } = new List<Character>();
+
+    public List<Consumables> CurrentItemList { get; set; } = new List<Consumables>();
     public Character SelectedCharacter { get; set; }
     public int CurrentTarget { get; set; }
     public AttackActions SelectedAttack { get; set; }
@@ -129,8 +131,15 @@ public class TurnManager
         SelectedCharacter = CurrentCharacterList[CharacterNumber];
     }
 
-    public List<Consumables> CurrentItemInventory(PartyManager party) =>
-        CurrentCharacterList == party.HeroPartyList ? party.HeroesItemInventory : party.MonstersItemInventory;
+    public List<Consumables> GetCurrentItemInventory(PartyManager party)
+    {
+        return CurrentItemList = 
+            CurrentCharacterList == party.HeroPartyList ? party.HeroesItemInventory : party.MonstersItemInventory;
+    }
+
+
+
+        
 
     public List<Character> CurrentOpponentParty(PartyManager party) =>
         CurrentCharacterList == party.HeroPartyList ? party.MonsterPartyList : party.HeroPartyList;
@@ -183,9 +192,15 @@ public class TurnManager
 
             CharacterTurnEnd?.Invoke();
             if (party.CheckForEmptyParties()) break;
-            Thread.Sleep(500);
+
+            CheckComputerDelay(turn);
         }
         PartyTurnEnd?.Invoke(turn, party);
+    }
+
+    private void CheckComputerDelay(TurnManager turn)
+    {
+        if (turn.SelectedPlayerType is Computer) Thread.Sleep(500);
     }
 
     public void ManageTaunt(TurnManager turn) // we could make it so if the type of that character is in the list
