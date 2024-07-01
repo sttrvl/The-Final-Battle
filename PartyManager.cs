@@ -26,12 +26,15 @@ public class PartyManager
         new Dagger()
     };
 
+    public List<List<Consumables>?> AdditionalItemLists { get; set; } = new List<List<Consumables>?>();
+
     public List<List<Gear>> AdditionalGearLists { get; set; } = new List<List<Gear>>(); 
     // not used but has potential to be used
 
     public List<Consumables> HeroesItemInventory { get; set; } = new List<Consumables>()
     {
-        new HealthPotion(), new HealthPotion(), new HealthPotion()
+        new HealthPotion(), new HealthPotion(), new HealthPotion(),
+        new HealthPotion(), new HealthPotion(), new HealthPotion(),
     };
 
     public List<Consumables> MonstersItemInventory { get; set; } = new List<Consumables>()
@@ -104,7 +107,7 @@ public class PartyManager
         turn.SelectedCharacter.CurrentHP += turn.CurrentHealValue;
         turn.SelectedCharacter.CurrentHP = Math.Clamp(turn.SelectedCharacter.CurrentHP, 0, turn.SelectedCharacter.MaxHP);
 
-        if (turn.CurrentItemInventory(this).Count > 0) turn.CurrentItemInventory(this).RemoveAt(turn.ConsumableSelectedNumber);
+        if (turn.GetCurrentItemInventory(this).Count > 0) turn.GetCurrentItemInventory(this).RemoveAt(turn.ConsumableSelectedNumber);
     }
 
     public void SetUpParties(List<MenuOption> menu, DisplayInformation info, TurnManager turn)
@@ -113,7 +116,8 @@ public class PartyManager
         Console.Clear();
     }
 
-    public record Level(Gear? gear, params Character[] characters);
+    public record Level(Consumables? item, int itemAmount, Gear? Extragear, int gearAmount,
+                        Gear? equippedGearChoice,          params Character[] characters);
 
     public void PartySetUpSettings(List<MenuOption> menu, DisplayInformation info, TurnManager turn)
     {
@@ -125,16 +129,43 @@ public class PartyManager
 
         List<Level> levels = LoadLevelsFromFile("Levels.txt", turn);
         Dictionary<Character, Gear> noGear = new Dictionary<Character, Gear>();
-        //AddMonsterRound(noGear, new StoneAmarok(), new StoneAmarok());
+        // AddMonsterRound(noGear, new StoneAmarok(), new StoneAmarok());
         // AddMonsterRound(noGear, new UncodedOne());
 
         foreach (Level level in levels)
         {
             List<Dictionary<Character, Gear?>> currentGearChoices = new List<Dictionary<Character, Gear?>>();
-            if (level.gear != null)
-                currentGearChoices.Add(SetUpCharacterWithGear(level.gear, level.characters));
+            if (level.equippedGearChoice != null)
+                currentGearChoices.Add(SetUpCharacterWithGear(level.equippedGearChoice, level.characters));
             else
                 currentGearChoices.Add(SetUpCharacterWithGear(null, level.characters));
+
+            if (level.Extragear != null)
+            {
+                List<Gear> gear = new List<Gear>();
+                for (int index = 0; index < level.gearAmount; index++)
+                    gear.Add(level.Extragear);
+
+                AdditionalGearLists.Add(gear);
+            }
+            else
+            {
+                AdditionalGearLists.Add(new List<Gear>());
+            }
+
+            if (level.item != null)
+            {
+                List<Consumables> items = new List<Consumables>();
+
+                for (int index = 0; index < level.itemAmount; index++)
+                    items.Add(level.item);
+
+                AdditionalItemLists.Add(items);
+            }
+            else
+            {
+                AdditionalItemLists.Add(new List<Consumables>());
+            }
 
             for (int index = 0; index < currentGearChoices.Count; index++)
             {
@@ -148,26 +179,48 @@ public class PartyManager
         List<Level> levels = new List<Level>();
 
         string[] levelStrings = File.ReadAllLines(filePath);
-        foreach (string levelString in levelStrings)
+        List<string> levelStringList =levelStrings.ToList();
+        levelStringList.RemoveAt(0);
+        levelStringList.RemoveAt(0);
+        foreach (string levelString in levelStringList)
         {
             List<Character> characters = new List<Character>();
             string[] tokens = levelString.Split(',');
-            for (int index = 1; index < tokens.Length; index++)
-                characters.Add(GetCharacter(tokens[index], turn));
 
-            Level level = new Level(GetGear(tokens[0]), characters.ToArray());
-            levels.Add(level);
+            for (int index = 5; index < tokens.Length; index++)
+                characters.Add(GetCharacter(tokens[index].Trim(), turn));
+
+            int extraItemAmount = Convert.ToInt32(tokens[1].Trim());
+            int extraGearAmount = Convert.ToInt32(tokens[3].Trim());
+
+            levels.Add(new Level(GetItem(tokens[0].Trim(), turn), extraItemAmount, GetGear(tokens[2].Trim(), turn),
+                       extraGearAmount, GetGear(tokens[4].Trim(), turn), characters.ToArray()));
         }
         return levels;
     }
-    public Gear? GetGear(string gear)
+
+    public Consumables? GetItem(string consumableType, TurnManager turn)
+    {
+        return consumableType.ToLower() switch
+        {
+            "healthpotion" => new HealthPotion(),
+            "simulassoup"  => new SimulasSoup(turn),
+            "empty" => null,
+            _       => null
+        };
+    }
+
+    public Gear? GetGear(string gear, TurnManager turn)
     {
         return gear.ToLower() switch
         {
-            "sword"  => new Sword(),
-            "dagger" => new Dagger(),
-            "nogear" => null,
-            _        => null
+            "sword"            => new Sword(),
+            "dagger"           => new Dagger(),
+            "vinsbow"          => new VinsBow(),
+            "cannonofconsolas" => new CannonOfConsolas(turn),
+            "binaryHelm"       => new BinaryHelm(),
+            "nogear"           => null,
+            _                  => null
         };
     }
 
@@ -206,6 +259,11 @@ public class PartyManager
     public (List<Character>, Character) CreatePlayer(List<Character> newParty, Character partyType)
     {
         return (newParty, partyType);
+    }
+
+    public void AdditionalItems()
+    {
+
     }
 
     public void AddMonsterRound(Dictionary<Character, Gear?> gearChoices, List<Character> characterList)
@@ -471,14 +529,32 @@ public class PartyManager
 
     public event Action<TurnManager, PartyManager> ItemsObtained;
 
+    // We got a potential issue, the number of monster list needs to match the gearList, so we potentially need to
+    // add a placeholder to the gear list if It's empty or whatever
     public void NextMonsterParty(TurnManager turn, PartyManager party)
     {
-        if (turn.NumberBattleRounds > 0 && AdditionalMonsterLists.Count > 0)
+        if (turn.NumberBattleRounds > 0)
         {
-            foreach (Character character in AdditionalMonsterLists[0])
-                MonsterPartyList.Add(character);
-                
-            AdditionalMonsterLists.RemoveAt(0); // removes "used" monster list
+            if (AdditionalMonsterLists.Count > 0)
+            {
+                foreach (Character character in AdditionalMonsterLists[0])
+                    MonsterPartyList.Add(character);
+
+                AdditionalMonsterLists.RemoveAt(0); // removes "used" monster list
+                if (AdditionalGearLists.Count > 0)
+                {
+                    foreach (Gear gear in AdditionalGearLists[0])
+                        MonsterGearInventory.Add(gear);
+                }
+                AdditionalGearLists.RemoveAt(0);
+
+                if (AdditionalItemLists.Count > 0)
+                {
+                    foreach (Consumables items in AdditionalItemLists[0])
+                        MonstersItemInventory.Add(items);
+                }
+                AdditionalItemLists.RemoveAt(0);
+            }
         }
         PartyDefeated?.Invoke(party, turn);
         turn.AdditionalBattleRoundUsed();
