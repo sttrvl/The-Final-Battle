@@ -1,7 +1,4 @@
-﻿using System.Data.Common;
-using System.Security.Cryptography.X509Certificates;
-
-public class Game
+﻿public class Game
 {
     public void Run()
     {
