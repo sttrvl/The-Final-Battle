@@ -52,7 +52,7 @@ public class SimulasSoup : Consumables
     public SimulasSoup(TurnManager turn)
     {
         Name = "Simulas Soup";
-        Heal = turn.SelectedCharacter.MaxHP;
+        Heal = 999;
     }
 
     public override ConsumableItem Execute() => ConsumableItem.SimulasSoup;
