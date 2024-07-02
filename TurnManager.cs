@@ -12,7 +12,6 @@ public class TurnManager
     public List<Consumables> CurrentItemList { get; set; } = new List<Consumables>();
     public Character SelectedCharacter { get; set; }
     public int CurrentTarget { get; set; }
-    public AttackActions SelectedAttack { get; set; }
     public AttackAction CurrentAttack { get; set; }
     public int CurrentDamage { get; set; }
     public void ClampDamage()
@@ -60,24 +59,22 @@ public class TurnManager
     }
 
     public event Action CharacterTurnEnd;
-    public event Action<TurnManager, PartyManager> PartyTurnEnd;
+    public event Action<PartyManager> PartyTurnEnd;
     public event Action? turnSkipped;
     public TurnManager(PartyManager party)
     {
-        CharacterTurnEnd += UpdateCharacterNumber;
-        PartyTurnEnd += ManageTurnEnd;
+        CharacterTurnEnd             += UpdateCharacterNumber;
+        PartyTurnEnd                 += ManagePartyTurns;
         party.AdditionalMonsterRound += NextBattle;
     }
 
     public void ManageTurnEnd(TurnManager turn, PartyManager party)
     {
-        
         ManagePoisoned(turn, party);
         ManagePlagueSick(turn, party);
-        ManagePartyTurns(turn, party);
     }
 
-    public void ManagePartyTurns(TurnManager turn, PartyManager party)
+    public void ManagePartyTurns(PartyManager party)
     {
         if (CurrentParty(party) == party.HeroPartyList)
             party.HeroPartyTurn++;
@@ -95,31 +92,31 @@ public class TurnManager
     private int CurrentPartyTurn { get; set; } = 0;
     public void ManagePoisoned(TurnManager turn, PartyManager party)
     {
-        GetCurrentPartyTurn(party);
-        if (Round % 2 == 0)
-            if (party.CheckForPoisonedCharacter(turn))
-            {
-                party.PoisonCharacter(turn);
-            }
+        if (party.CheckForPoisonedCharacter(turn))
+        {
+            party.PoisonCharacter(turn);
+        }
     }
 
     public void ManagePlagueSick(TurnManager turn, PartyManager party)
     {
-        GetCurrentPartyTurn(party);
-        if (Round % 2 == 0)
-            if (party.CheckForPlagueSickCharacter(turn))
-            {
-                party.PlagueSickCharacter(turn);
-            }
+        if (party.CheckForPlagueSickCharacter(turn))
+        {
+            party.PlagueSickCharacter(turn);
+        }
     }
 
     public void UpdateCharacterNumber() =>
         CharacterNumber = CharacterNumber < CurrentCharacterList.Count ? CharacterNumber + CharacterNumber++ : 0;
 
     public void NextBattle() => NumberBattleRounds++;
-    public void CheckForNextRound(PartyManager party)
+    public void CheckForNextRound(TurnManager turn, PartyManager party)
     {
-        if (party.HeroPartyTurn == party.MonsterPartyTurn) Round++;
+        if (party.HeroPartyTurn == party.MonsterPartyTurn)
+        {
+            ManageTurnEnd(turn, party);
+            Round++;
+        }
     }
 
     public void AdvanceToNextParty() => RoundCounter++;
@@ -136,10 +133,6 @@ public class TurnManager
         return CurrentItemList = 
             CurrentCharacterList == party.HeroPartyList ? party.HeroItemInventory : party.MonsterItemInventory;
     }
-
-
-
-        
 
     public List<Character> CurrentOpponentParty(PartyManager party) =>
         CurrentCharacterList == party.HeroPartyList ? party.MonsterPartyList : party.HeroPartyList;
@@ -195,7 +188,7 @@ public class TurnManager
 
             CheckComputerDelay(turn);
         }
-        PartyTurnEnd?.Invoke(turn, party);
+        PartyTurnEnd?.Invoke(party);
     }
 
     private void CheckComputerDelay(TurnManager turn)

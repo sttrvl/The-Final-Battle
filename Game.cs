@@ -21,7 +21,7 @@
             turn.PartyTurnSetUp(party);
 
             turn.RunCurrentParty(turn, info, party);
-            turn.CheckForNextRound(party);
+            turn.CheckForNextRound(turn, party);
             
             turn.AdvanceToNextParty();
         }
