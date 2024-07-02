@@ -72,8 +72,11 @@ public class PartyManager
             poisoned.Character.CurrentHP = poisoned.Character.HealthClamp();
             poisoned.TurnsPoisoned -= 1;
             turn.CurrentPoisonedCharacters[index] = poisoned;
+            PoisonDamage.Invoke(poisoned.Character);
         }   
     }
+
+    public event Action<Character> PoisonDamage;
 
     public void PlagueSickCharacter(TurnManager turn)
     {
@@ -83,8 +86,11 @@ public class PartyManager
             sick.Character.ForcedChoice = 0;
             sick.TurnsSick -= 1;
             turn.CurrentSickPlagueCharacters[index] = sick;
+            PlagueSickDamage.Invoke(sick.Character);
         }
     }
+
+    public event Action<Character> PlagueSickDamage;
 
     public void UpdateCharacterHealth(TurnManager turn)
     {

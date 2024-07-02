@@ -1,4 +1,6 @@
-﻿public class DisplayInformation
+﻿using System.IO;
+
+public class DisplayInformation
 {
     public DisplayInformation(PartyManager party, TurnManager turn)
     {
@@ -11,6 +13,8 @@
         party.PartyDefeated             += OnDisplayBattleEnd;
         party.SoulBonus                 += OnDisplaySoulBonus;
         party.CharacterPoisoned         += OnDisplayCharacterPoisoned;
+        party.PoisonDamage              += OnDisplayPoisonDamage;
+        party.PlagueSickDamage          += OnDisplayPlagueSick;
         party.CharacterPlagueSick       += OnDisplayCharacterPlagueSick;
         turn.TauntMessage               += OnDisplayTaunt;
         party.OffensiveModifierApplied  += OnDisplayOffensiveModifierEffects;
@@ -20,6 +24,36 @@
     }
 
     public event Action<TurnManager> TurnSkipped;
+
+    
+    public void OnDisplayPoisonDamage(Character character)
+    {
+        List<ColoredText> colorText = new List<ColoredText>
+        {
+            new ColoredText($"*Poison*", ConsoleColor.DarkGreen),
+            new ColoredText($"deals", ConsoleColor.White),
+            new ColoredText($" 1 ", ConsoleColor.Red),
+            new ColoredText($"damage to ", ConsoleColor.White),
+            new ColoredText($"{character}", CharacterColor(character)),
+            new ColoredText($".", ConsoleColor.White),
+        };
+
+        LogMessages.Add(colorText);
+    }
+
+    public void OnDisplayPlagueSick(Character character)
+    {
+        List<ColoredText> colorText = new List<ColoredText>
+        {
+            new ColoredText($"{character}", CharacterColor(character)),
+            new ColoredText($" can't move ", ConsoleColor.DarkYellow),
+            new ColoredText($"they have: ", ConsoleColor.DarkYellow),
+            new ColoredText($"*Plague Sickness*", ConsoleColor.DarkYellow),            
+            new ColoredText($".", ConsoleColor.White),
+        };
+
+        LogMessages.Add(colorText);
+    }
 
     public void OnDisplayItemsObtained(TurnManager turn, PartyManager party)
     {
@@ -58,7 +92,7 @@
                 info.DisplayCurrentInventoryItems(turn.GetCurrentItemInventory(party), info);
                 break;
             case 3:
-                // if (party.OptionAvailable(choice, turn)) redundant
+                turn.GetCurrentItemInventory(party);
                 info.DisplayCurrentGearInventory(turn.CurrentGearInventory, info);
                 break;
             case 0:
