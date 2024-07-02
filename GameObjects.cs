@@ -119,7 +119,6 @@ public class CannonOfConsolas : Weapon
     public int GetTurnDamage(TurnManager turn)
     {
         int value = 1;
-        //if (turn.Round == 0) value = 1; intended, full damage first round
         if (turn.Round % 3 == 0 && turn.Round % 5 == 0) value = 5;
         else if (turn.Round % 3 == 0 || turn.Round % 5 == 0) value = 2;
         
