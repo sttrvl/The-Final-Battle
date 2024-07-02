@@ -1,7 +1,5 @@
 ﻿
-// Bug, sometimes characters with 0 health do not get removed, this only happens with poisoned characters
-
-// Rundown at everything, refactoring
+// Rundown at everything, refactoring       ongoing epic refactoring time yeah yeah rb whittaker best teacher
 // add namespaces
 // finish
 
