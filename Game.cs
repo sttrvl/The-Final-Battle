@@ -12,7 +12,7 @@
 
         while (!party.CheckForEmptyParties())
         {
-            turn.PartyTurnSetUp(party);
+            turn.CurrentPartyTurnSetUp(party);
 
             turn.RunCurrentParty(turn, info, party);
             turn.CheckForNextRound(turn, party);
