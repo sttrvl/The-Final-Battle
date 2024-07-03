@@ -1,9 +1,4 @@
-﻿using Microsoft.VisualBasic;
-using Microsoft.VisualBasic.FileIO;
-using System;
-using static TurnManager;
-
-public class InputManager
+﻿public class InputManager
 {
     public string AskUser(string text)
     {
@@ -13,7 +8,7 @@ public class InputManager
 
     public void ManageInputItem(TurnManager turn, PartyManager party)
     {
-        RetriveItemProperties(turn, turn.ConsumableSelected.Execute());
+        RetriveItemProperties(turn);
         party.UseConsumableItem(turn);
     }
 
@@ -39,7 +34,7 @@ public class InputManager
             AttackActions.Whip           => new Whip(),
             AttackActions.Bite           => new Bite(),
             AttackActions.Scratch        => new Scratch(),
-            AttackActions.SmartRockets => new SmartRockets(),
+            AttackActions.SmartRockets   => new SmartRockets(),
             _                            => new Nothing()
         };
     }
@@ -65,7 +60,7 @@ public class InputManager
         if (attack is Gear) turn.SelectedCharacter.Weapon = (Gear)attack;
     }
 
-    private void RetriveItemProperties(TurnManager turn, ConsumableItem attack)
+    private void RetriveItemProperties(TurnManager turn)
     {
         if (turn.ConsumableSelected.Heal != null) turn.CurrentHealValue = (int)turn.ConsumableSelected.Heal;
     }
@@ -74,32 +69,33 @@ public class InputManager
     {
         List<AttackActions> availableActions = ActionAvailableCheck(party, turn);
         
-        int inputAction = ChooseAction("Choose an action:", availableActions.Count + 1);
-        InputAction(party, turn, availableActions[inputAction - 1]);
+        int inputAction = ChooseOption("Choose an action:", availableActions.Count);
+        InputAction(party, turn, availableActions[inputAction]);
 
+        DrawOpponentTargets(turn, party, info);
+        turn.CurrentTarget = ChooseTarget(turn, party);
+    }
 
-        int opponentPartyCount = turn.CurrentOpponentParty(party).Count;
-        // Fix: separate a bit
-
+    private void DrawOpponentTargets(TurnManager turn, PartyManager party, DisplayInformation info)
+    {
         info.ClearMenu();
-        Console.SetCursorPosition(1, 23);
+        info.OptionDisplayPosition();
         if (turn.CurrentOpponentParty(party).Count > 1)
+        {
             for (int index = 0; index < turn.CurrentOpponentParty(party).Count; index++)
             {
                 Console.WriteLine($"{turn.CurrentOpponentParty(party)[index]}({index})");
                 Console.SetCursorPosition(1, Console.CursorTop);
             }
-        int? inputTarget;
-        if (turn.CurrentAttack is AreaAttack)
-        {
-            inputTarget = 0; // could be something else but this is good for now
         }
-        else
-        {
-            inputTarget = opponentPartyCount == 1 ? 0 : ChooseOption("Choose a target:", opponentPartyCount);
-        }
-        
-        turn.CurrentTarget = (int)inputTarget;
+    }
+
+    private int ChooseTarget(TurnManager turn, PartyManager party)
+    {
+        if (turn.CurrentAttack is AreaAttack) return 0;
+
+        int opponentPartyCount = turn.CurrentOpponentParty(party).Count;
+        return opponentPartyCount == 1 ? 0 : ChooseOption("Choose a target:", opponentPartyCount);
     }
 
     public List<AttackActions> ActionAvailableCheck(PartyManager party, TurnManager turn)
@@ -133,7 +129,7 @@ public class InputManager
             AttackActions.Whip             => new Whip().Name,
             AttackActions.Nothing          => new Nothing().Name,
             AttackActions.Scratch          => new Scratch().Name,
-            AttackActions.SmartRockets   => new SmartRockets().Name,
+            AttackActions.SmartRockets     => new SmartRockets().Name,
             _                              => "Unknown"
         };
     }
@@ -141,23 +137,10 @@ public class InputManager
     public MenuOptions InputMenuOption(List<MenuOption> menu, DisplayInformation info)
     {
         int? choice = null;
-        DrawMenu(menu, info);
         while (choice == null || CheckListBounds(choice, menu))
-        {
-            try
-            {
-                choice = Convert.ToInt32(AskUser("Please choose a Gamemode:"));
-                if (CheckListBounds(choice, menu))
-                {
-                    DrawMenu(menu, info);
-                    Console.Write("Doesn't exist. ");
-                }
-            }
-            catch (FormatException)
-            {
-                DrawMenu(menu, info);
-                Console.Write("Not a number. ");
-            }
+        { 
+            DrawMenu(menu, info);
+            choice = ChooseOption("Please choose a Gamemode:", menu.Count);
         }
         return menu[(int)choice].Execute();
     }
@@ -165,7 +148,7 @@ public class InputManager
     private void DrawMenu(List<MenuOption> menu, DisplayInformation info)
     {
         Console.Clear();
-        info.DisplayMenu(menu);
+        info.DisplayMenu(menu, 23);
     }
 
     private bool CheckListBounds(int? choice, List<MenuOption> menu) => choice < 0 || choice >= menu.Count;
@@ -188,7 +171,7 @@ public class InputManager
 
         int? choice = ChooseOption("Choose what to do:", options);
 
-        return info.DisplayCorrectMenu((int)choice, party, turn, info);
+        return turn.CurrentMenu((int)choice, party, turn, info);
     }
 
     public void UserManager(TurnManager turn, PartyManager party, DisplayInformation info)
@@ -201,31 +184,18 @@ public class InputManager
 
     public void HumanAction(PartyManager party, DisplayInformation info, TurnManager turn)
     {
-        InputManager input = new InputManager();
-        int? option = null;
-        for (int index = 0; index < turn.CurrentSickPlagueCharacters.Count; index++)
-        {
-            if (turn.CurrentSickPlagueCharacters[index].Character.ID == turn.SelectedCharacter.ID)
-            {
-                if (turn.CurrentSickPlagueCharacters[index].Character.ForcedChoice != null)
-                {
-                    int? value = turn.CurrentSickPlagueCharacters[index].Character.ForcedChoice;
-                    info.DisplayCorrectMenu(value, party, turn, info);
-                    return;
-                }
-            }
-        }
+        if (CheckPlagueEffects(turn, party, info)) return;
 
-        option = input.OptionsMenuInput(party, info, turn);
+        int? option = OptionsMenuInput(party, info, turn);
 
         if (option == 1)
         {
-            input.AskInputAction(turn, party, info);
+            AskInputAction(turn, party, info);
             party.DamageTaken(party, turn);
         }
         if (option == 2)
         {
-            if (turn.GetCurrentItemInventory(party).Count == 0)
+            if (IsListEmpty(turn.GetCurrentItemInventory(party).Count))
             {
                 UserManager(turn, party, info);
                 return;
@@ -236,61 +206,73 @@ public class InputManager
         }
         if (option == 3)
         {
-            if (party.OptionAvailable(option, turn))
-            {
-                ChooseInputGear(party, turn, info);
-                turn.CheckSelectedCharacterGear(party);
-                party.EquipGear(turn, info);
-            }
-            else
+            if (IsListEmpty(turn.CurrentGearInventory.Count))
             {
                 UserManager(turn, party, info);
                 return;
             }
+
+            ChooseInputGear(turn);
+            turn.CheckSelectedCharacterGear(party);
+            party.EquipGear(turn);
         }
     }
 
+    private bool IsListEmpty(int count) => count == 0;
+
     public void ComputerAction(PartyManager party, TurnManager turn, DisplayInformation info)
     {
-        Computer computer = new Computer();
-        int? computerChoice = null;
-
-        for (int index = 0; index < turn.CurrentSickPlagueCharacters.Count; index++)
-        { 
-            if (turn.CurrentSickPlagueCharacters[index].Character.ID == turn.SelectedCharacter.ID)
-            {
-                if (turn.CurrentSickPlagueCharacters[index].ForcedChoice != null)
-                {
-                    info.DisplayCorrectMenu(turn.CurrentSickPlagueCharacters[index].ForcedChoice, party, turn, info);
-                    return;
-                }
-            }
-        }
-        
-        computerChoice = computer.MenuOption(party, turn, info);
+        if (CheckPlagueEffects(turn, party, info)) return;
+        // DEBUG: replaced set instance of computer for just new
+        int? computerChoice = new Computer().ComputerMenuOption(party, turn, info); 
 
         if (computerChoice == 1)
         {
-            computer.ExecuteAction(party, turn);
+            new Computer().ExecuteAction(party, turn);
             party.DamageTaken(party, turn);
         }
         if (computerChoice == 2)
         {
-            computer.SelectItem(turn.GetCurrentItemInventory(party), turn);
+            new Computer().ComputerSelectItem(turn.GetCurrentItemInventory(party), turn);
             ManageInputItem(turn, party);
         }
         if (computerChoice == 3)
         {
-            if (party.OptionAvailable(computerChoice, turn))
-            {
-                computer.SelectGear(turn);
-                turn.CheckSelectedCharacterGear(party);
-                party.EquipGear(turn, info);
-            }
+            new Computer().ComputerSelectGear(turn);
+            turn.CheckSelectedCharacterGear(party);
+            party.EquipGear(turn);
         }
     }
 
-    public void ChooseInputGear(PartyManager party, TurnManager turn, DisplayInformation info)
+    private bool CheckPlagueEffects(TurnManager turn, PartyManager party, DisplayInformation info)
+    {
+        for (int index = 0; index < turn.CurrentSickPlagueCharacters.Count; index++)
+        {
+            int? value = turn.CurrentSickPlagueCharacters[index].Character.ForcedChoice;
+            if (CheckForPlague(turn, index) && NumberIsNotNull(value))
+            {
+                if (turn.CurrentSickPlagueCharacters[index].Character.ForcedChoice != null)
+                {
+                    ForceChoice(turn, party, info, index);
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private void ForceChoice(TurnManager turn, PartyManager party, DisplayInformation info, int index)
+    {
+        turn.CurrentMenu(turn.CurrentSickPlagueCharacters[index].Character.ForcedChoice, party, turn, info);
+    }
+
+    private bool NumberIsNotNull(int? choice) => choice != null;
+
+    private bool CheckForPlague(TurnManager turn, int index) => 
+        turn.CurrentSickPlagueCharacters[index].Character.ID == turn.SelectedCharacter.ID;
+
+    public void ChooseInputGear(TurnManager turn)
     {
         int choice = ChooseOption("Choose gear to equip:", turn.CurrentGearInventory.Count);
         turn.SelectedGear = choice;
@@ -305,7 +287,7 @@ public class InputManager
     public int ChooseOption(string prompt, int maxIndex)
     {
         int? choice = null;
-        Console.SetCursorPosition(1, 22);
+        InputPosition();
         while (choice == null || choice < 0 || choice >= maxIndex)
         {
             try
@@ -322,7 +304,7 @@ public class InputManager
             }
             catch (FormatException)
             {
-                ClearSingleLine(0);
+                ClearSingleLine(50);
                 string notNumber = "Not a number.";
                 Console.Write(notNumber);
                 Console.SetCursorPosition(notNumber.Length + 2, 22);
@@ -331,39 +313,12 @@ public class InputManager
         return (int)choice;
     }
 
-    private int ChooseAction(string prompt, int maxIndex)
-    {
-        int? inputAction = null;
-        Console.SetCursorPosition(1, 22);
-        while (inputAction == null || inputAction <= 0 || inputAction >= maxIndex)
-        {
-            try
-            {
-                if (inputAction <= 0 || inputAction >= maxIndex)
-                {
-                    ClearSingleLine(50);
-                    string invalidChoice = "Invalid choice.";
-                    Console.Write(invalidChoice);
-                    inputAction = null;
-                    Console.SetCursorPosition(invalidChoice.Length + 2, 22);
-                }
-                inputAction = Convert.ToInt32(AskUser(prompt));
-            }
-            catch (FormatException)
-            {
-                ClearSingleLine(50);
-                string notNumber = "Not a number.";
-                Console.Write(notNumber);
-                Console.SetCursorPosition(notNumber.Length + 2, 22);
-            }
-        }
-        return (int)inputAction!;
-    }
+    public void InputPosition() => Console.SetCursorPosition(1, 22);
 
     public void ClearSingleLine(int value)
     {
-        Console.SetCursorPosition(1, 22);
-        Console.Write(new string(' ', 50));
-        Console.SetCursorPosition(1, 22);
+        InputPosition();
+        Console.Write(new string(' ', value));
+        InputPosition();
     }
 }
