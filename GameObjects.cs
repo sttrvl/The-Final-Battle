@@ -1,39 +1,24 @@
-﻿public interface IGameObjects
+﻿public interface IAction
 {
     public void Execute();
 }
 
-public interface IAction : IGameObjects
+public interface IInventoryAction : IAction
 {
+    string Name { get; internal set; }
 }
 
-public interface IMenuAction<T> : IAction
+public abstract class InventoryItem : IInventoryAction
 {
+    public string Name { get; set; } = "Inventory Object";
+    public abstract void Use();
+    void IAction.Execute() => Use();
 }
 
-public interface IItemAction<T> : IAction
+public abstract class Consumables : InventoryItem
 {
-}
-
-public interface IAttackAction : IAction
-{
-}
-
-public interface IInventoryObject : IAction
-{
-}
-
-public abstract class InventoryObjects<T> : IItemAction<T>
-{
-    public abstract T Execute();
-    void IGameObjects.Execute() => Execute();
-}
-
-public abstract class Consumables : InventoryObjects<ConsumableItem>, IInventoryObject
-{
-    public string Name { get; set; } = "None";
-    public int? Heal = null;
-    public override abstract ConsumableItem Execute();
+    public int? Heal { get; internal set; } = null;
+    public abstract ConsumableItem Execute();
 }
 
 public class HealthPotion : Consumables
@@ -44,6 +29,7 @@ public class HealthPotion : Consumables
         Heal = 10;
     }
 
+    public override void Use() => Execute();
     public override ConsumableItem Execute() => ConsumableItem.HealthPotion;
 }
 
@@ -52,189 +38,60 @@ public class SimulasSoup : Consumables
     public SimulasSoup(TurnManager turn)
     {
         Name = "Simulas Soup";
-        Heal = 999;
+        Heal = 999; // this was the easy way ok
     }
 
+    public override void Use() => Execute();
     public override ConsumableItem Execute() => ConsumableItem.SimulasSoup;
 }
 
-public abstract class Gear : AttackAction, IInventoryObject
+public abstract class AttackAction : InventoryItem
 {
-    public int DefensiveValue;
-    public int OffensiveValue;
-    public OffensiveAttackModifier? OffensiveAttackModifier;
-}
-
-public abstract class Weapon : Gear
-{
-}
-
-public class Sword : Weapon
-{
-    public override AttackActions Execute() => AttackActions.Slash;
-
-    public Sword()
-    {
-        Name = "Sword";
-        AttackDamage = 2;
-        AttackProbability = 1;
-    }
-}
-
-public class Dagger : Weapon
-{
-    public override AttackActions Execute() => AttackActions.Stab;
-
-    public Dagger()
-    {
-        Name = "Dagger";
-        AttackDamage = 1;
-        AttackProbability = 1;
-    }
-}
-
-public class VinsBow : Weapon
-{
-    public override AttackActions Execute() => AttackActions.QuickShot;
-
-    public VinsBow()
-    {
-        Name = "Vin's Bow";
-        AttackDamage = 3;
-        AttackProbability = 0.5;
-    }
-}
-
-public class CannonOfConsolas : Weapon
-{
-    public override AttackActions Execute() => AttackActions.CannonBall;
-
-    public CannonOfConsolas(TurnManager turn)
-    {
-        Name = "Cannon Of Consolas";
-        AttackDamage = GetTurnDamage(turn);
-        AttackProbability = 1;
-    }
-
-    public int GetTurnDamage(TurnManager turn)
-    {
-        int value = 1;
-        if (turn.Round % 3 == 0 && turn.Round % 5 == 0) value = 5;
-        else if (turn.Round % 3 == 0 || turn.Round % 5 == 0) value = 2;
-        
-        return value;
-    }
-}
-
-public abstract class Armor : Gear
-{
-}
-
-public class BinaryHelm : Armor
-{
-    public override AttackActions Execute() => AttackActions.Nothing;
-
-    public BinaryHelm()
-    {
-        Name = "Binary Helm";
-        DefensiveValue = 1;
-        OffensiveAttackModifier = new Binary();
-    }
-}
-
-public abstract class AttackModifier<T> : IAction
-{
-    public string Name { get; set; } = "None";
-    public int Value;
-    public abstract T Execute();
-    void IGameObjects.Execute() => Execute();
-}
-
-public abstract class DefensiveAttackModifier : AttackModifier<DefensiveAttackModifiers>
-{
-}
-
-public class StoneArmor : DefensiveAttackModifier
-{
-    public override DefensiveAttackModifiers Execute() => DefensiveAttackModifiers.StoneArmor;
-    public StoneArmor()
-    {
-        Name = "Stone Armor";
-        Value = -1;
-    }
-}
-
-public class ObjectSight : DefensiveAttackModifier
-{
-    public override DefensiveAttackModifiers Execute() => DefensiveAttackModifiers.ObjectSight;
-
-    public ObjectSight()
-    {
-        Name = "Object Sight";
-        Value = -2;
-    }
-}
-
-public abstract class OffensiveAttackModifier : AttackModifier<OffensiveAttackModifiers>
-{
-}
-
-public class Binary : OffensiveAttackModifier
-{
-    public override OffensiveAttackModifiers Execute() => OffensiveAttackModifiers.Binary;
-
-    public Binary()
-    {
-        Name = "Binary";
-        Value = new Random().Next(1);
-    }
-}
-
-public abstract class AttackAction : IAttackAction
-{
-    public string Name { get; set; } = "Attack Action";
-    public AttackTypes AttackType { get; set; } = AttackTypes.Normal;
+    public AttackTypes AttackType { get; internal set; } = AttackTypes.Normal;
     public abstract AttackActions Execute();
-    void IGameObjects.Execute() => Execute();
-    public int AttackDamage { get; set; }
-    public double AttackProbability { get; set; }
-    public AttackSideEffects? AttackSideEffect { get; set; }
-    public AttackTemporaryEffects? AttackTemporaryEffect { get; set; }
+    public int AttackDamage { get; internal set; } = 0;
+    public double AttackProbability { get; internal set; } = 0;
+    public AttackSideEffects? AttackSideEffect { get; internal set; } = null;
+    public AttackTemporaryEffects? AttackTemporaryEffect { get; internal set; } = null;
 }
 
 public class Nothing : AttackAction
 {
-    public override AttackActions Execute() => AttackActions.Nothing;
     public Nothing()
     {
         AttackDamage = 0;
         AttackProbability = 1;
         Name = "Nothing";
     }
+
+    public override void Use() => Execute();
+    public override AttackActions Execute() => AttackActions.Nothing;
 }
 
 public class Punch : AttackAction
 {
-    public override AttackActions Execute() => AttackActions.Punch;
-
     public Punch()
     {
         AttackDamage = 1;
         AttackProbability = 1;
         Name = "Punch";
     }
+
+    public override void Use() => Execute();
+    public override AttackActions Execute() => AttackActions.Punch;
 }
 
 public class BoneCrunch : AttackAction
 {
-    public override AttackActions Execute() => AttackActions.BoneCrunch;
-
     public BoneCrunch()
     {
         AttackDamage = new Random().Next(2);
         AttackProbability = 1;
         Name = "Bone Crunch";
     }
+
+    public override void Use() => Execute();
+    public override AttackActions Execute() => AttackActions.BoneCrunch;
 }
 
 public class Unraveling : AttackAction
@@ -246,7 +103,9 @@ public class Unraveling : AttackAction
         AttackProbability = 1;
         Name = "Unraveling";
     }
+
     public override AttackActions Execute() => AttackActions.Unraveling;
+    public override void Use() => Execute();
 }
 
 public class Bite : AttackAction
@@ -257,7 +116,9 @@ public class Bite : AttackAction
         AttackProbability = 1;
         Name = "Bite";
     }
+
     public override AttackActions Execute() => AttackActions.Bite;
+    public override void Use() => Execute();
 }
 
 public class Grapple : AttackAction
@@ -269,7 +130,9 @@ public class Grapple : AttackAction
         Name = "Grapple";
         AttackSideEffect = AttackSideEffects.Steal;
     }
+
     public override AttackActions Execute() => AttackActions.Grapple;
+    public override void Use() => Execute();
 }
 
 public class Whip : AttackAction
@@ -281,6 +144,8 @@ public class Whip : AttackAction
         AttackTemporaryEffect = AttackTemporaryEffects.Poison;
         Name = "Whip";
     }
+
+    public override void Use() => Execute();
     public override AttackActions Execute() => AttackActions.Whip;
 }
 
@@ -293,7 +158,9 @@ public class Scratch : AttackAction
         AttackTemporaryEffect = AttackTemporaryEffects.RotPlague;
         Name = "Scratch";
     }
+
     public override AttackActions Execute() => AttackActions.Scratch;
+    public override void Use() => Execute();
 }
 
 public abstract class AreaAttack : AttackAction
@@ -309,14 +176,164 @@ public class SmartRockets : AreaAttack
         AttackProbability = 0.75;
         Name = "Smart Rockets";
     }
+    
     public override AttackActions Execute() => AttackActions.SmartRockets;
+    public override void Use() => Execute();
+}
+
+public abstract class Gear : AttackAction
+{
+    public int DefensiveValue { get; internal set; } = 0;
+    public int OffensiveValue { get; internal set; } = 0;
+
+    public OffensiveAttackModifier? OffensiveAttackModifier;
+}
+
+public abstract class Weapon : Gear
+{
+
+}
+
+public class Sword : Weapon
+{
+    public Sword()
+    {
+        Name = "Sword";
+        AttackDamage = 2;
+        AttackProbability = 1;
+    }
+
+    public override void Use() => Execute();
+    public override AttackActions Execute() => AttackActions.Slash;
+}
+
+public class Dagger : Weapon
+{
+    public Dagger()
+    {
+        Name = "Dagger";
+        AttackDamage = 1;
+        AttackProbability = 1;
+    }
+
+    public override void Use() => Execute();
+    public override AttackActions Execute() => AttackActions.Stab;
+}
+
+public class VinsBow : Weapon
+{
+    public VinsBow()
+    {
+        Name = "Vin's Bow";
+        AttackDamage = 3;
+        AttackProbability = 0.5;
+    }
+
+    public override void Use() => Execute();
+    public override AttackActions Execute() => AttackActions.QuickShot;
+}
+
+public class CannonOfConsolas : Weapon
+{
+    public CannonOfConsolas(TurnManager turn)
+    {
+        Name = "Cannon Of Consolas";
+        AttackDamage = GetTurnDamage(turn);
+        AttackProbability = 1;
+    }
+
+    public override void Use() => Execute();
+    public override AttackActions Execute() => AttackActions.CannonBall;
+
+    public int GetTurnDamage(TurnManager turn)
+    {
+        int value = 1;
+        if (turn.Round % 3 == 0 && turn.Round % 5 == 0) value = 5;
+        else if (turn.Round % 3 == 0 || turn.Round % 5 == 0) value = 2;
+        
+        return value;
+    }
+}
+
+public abstract class Armor : Gear
+{
+
+}
+
+public class BinaryHelm : Armor
+{
+    public BinaryHelm()
+    {
+        Name = "Binary Helm";
+        DefensiveValue = 1;
+        OffensiveAttackModifier = new Binary();
+    }
+
+    public override void Use() => Execute();
+    public override AttackActions Execute() => AttackActions.Nothing;
+}
+
+public abstract class AttackModifier<T> : IAction
+{
+    public string Name { get; set; } = "None";
+    public int Value { get; set; } = 0;
+    public abstract T Execute();
+    void IAction.Execute() => Execute();
+}
+
+public abstract class DefensiveAttackModifier : AttackModifier<DefensiveAttackModifiers>
+{
+
+}
+
+public class StoneArmor : DefensiveAttackModifier
+{
+    public StoneArmor()
+    {
+        Name = "Stone Armor";
+        Value = -1;
+    }
+
+    public override DefensiveAttackModifiers Execute() => DefensiveAttackModifiers.StoneArmor;
+}
+
+public class ObjectSight : DefensiveAttackModifier
+{
+    public ObjectSight()
+    {
+        Name = "Object Sight";
+        Value = -2;
+    }
+
+    public override DefensiveAttackModifiers Execute() => DefensiveAttackModifiers.ObjectSight;
+}
+
+public abstract class OffensiveAttackModifier : AttackModifier<OffensiveAttackModifiers>
+{
+
+}
+
+public class Binary : OffensiveAttackModifier
+{
+    public Binary()
+    {
+        Name = "Binary";
+        Value = new Random().Next(1);
+    }
+
+    public override OffensiveAttackModifiers Execute() => OffensiveAttackModifiers.Binary;
+}
+
+public interface IMenuAction<T> : IAction
+{
+
 }
 
 public abstract class MenuOption : IMenuAction<MenuOptions>
 {
     public string Name { get; set; } = "Menu Option";
-    void IGameObjects.Execute() => Execute();
     public abstract MenuOptions Execute();
+    void IAction.Execute() => Execute();
 }
 
 public class ComputerVsComputer : MenuOption
@@ -334,6 +351,7 @@ public class PlayerVsComputer : MenuOption
     {
         Name = "Player Vs. Computer";
     }
+
     public override MenuOptions Execute() => MenuOptions.PlayerVsComputer;
 }
 
@@ -343,6 +361,7 @@ public class PlayerVsPlayer : MenuOption
     {
         Name = "Player Vs. Player";
     }
+
     public override MenuOptions Execute() => MenuOptions.PlayerVsPlayer;
 }
 
@@ -386,12 +405,6 @@ public class EquipGear : MenuOption
     public override MenuOptions Execute() => MenuOptions.EquipGear;
 }
 
-public enum GearType
-{
-    Sword,
-    Dagger
-}
-
 public enum AttackActions
 {
     Nothing,
@@ -413,7 +426,6 @@ public enum DefensiveAttackModifiers
 {
     StoneArmor,
     ObjectSight
-
 }
 
 public enum OffensiveAttackModifiers
