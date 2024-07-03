@@ -1,18 +1,19 @@
 ﻿public class TurnManager // Possible structs here
 {
-    public int Round { get; private set; } = 0;
+    public int Round { get; private set; } = 0;  // could go with round counter
     public int RoundCounter { get; private set; }
     public int NumberBattleRounds { get; private set; } = 0;
     private int CharacterNumber { get; set; } = 0;
-    public Character SelectedPlayerType { get; set; }
+    public Character SelectedPlayerType { get; set; }  // could go with the character list
+    public Character SelectedCharacter { get; set; }
     public List<Character> CurrentCharacterList { get; set; } = new List<Character>();
 
     public List<Consumables> CurrentItemList { get; set; } = new List<Consumables>();
-    public Character SelectedCharacter { get; set; }
+
     public int CurrentTarget { get; set; }
     public AttackAction CurrentAttack { get; set; }
     public int CurrentDamage { get; set; }
-    public void ClampDamage()
+    public void ClampDamage() // maybe elsewhere
     {
         if (CurrentDamage < 0) CurrentDamage = 0;
     }
@@ -27,7 +28,7 @@
     public OffensiveAttackModifier CurrentOffensiveModifier { get; set; }
     public List<PoisonedCharacterInfo> CurrentPoisonedCharacters { get; set; } = new List<PoisonedCharacterInfo>();
     public List<SickPlaguedCharacterInfo> CurrentSickPlagueCharacters { get; set; } = new List<SickPlaguedCharacterInfo>();
-    public struct PoisonedCharacterInfo
+    public struct PoisonedCharacterInfo //maybe elsewhere
     {
         public Character Character { get; set; }
         public List<Character> CharacterParty { get; set; }
@@ -43,7 +44,7 @@
         }
     };
 
-    public struct SickPlaguedCharacterInfo
+    public struct SickPlaguedCharacterInfo // maybe elsewhere
     {
         public Character Character { get; set; }
         public List<Character> CharacterParty { get; set; }
@@ -57,8 +58,6 @@
         }
     }
 
-    public event Action CharacterTurnEnd;
-    public event Action<PartyManager> PartyTurnEnd;
     public event Action? turnSkipped;
     public TurnManager(PartyManager party)
     {
@@ -68,6 +67,8 @@
     }
 
     public event Action<TurnManager> TurnSkipped;
+
+    public void SelectStartingPlayer(Character character, TurnManager turn) => turn.SelectedPlayerType = character;
 
     public int CurrentMenu(int? choice, PartyManager party, TurnManager turn, DisplayInformation info)
     {
@@ -100,10 +101,10 @@
 
     public void ManagePartyTurns(PartyManager party)
     {
-        if (CurrentParty(party) == party.HeroPartyList)
-            party.HeroPartyTurn++;
+        if (CurrentParty(party) == party.HeroParty.PartyList)
+            party.HeroParty.AddTurns();
         else
-            party.MonsterPartyTurn++;
+            party.MonsterParty.AddTurns();
     }
     
     public void ManagePoisoned(TurnManager turn, PartyManager party)
@@ -124,7 +125,7 @@
     public void NextBattle() => NumberBattleRounds++;
     public void CheckForNextRound(TurnManager turn, PartyManager party)
     {
-        if (party.HeroPartyTurn == party.MonsterPartyTurn)
+        if (party.HeroParty.TurnsPlayed == party.MonsterParty.TurnsPlayed)
         {
             ManageTurnEnd(turn, party);
             Round++;
@@ -143,13 +144,13 @@
     public List<Consumables> GetCurrentItemInventory(PartyManager party)
     {
         return CurrentItemList = 
-            CurrentCharacterList == party.HeroPartyList ? party.HeroItemInventory : party.MonsterItemInventory;
+            CurrentCharacterList == party.HeroParty.PartyList ? party.HeroParty.ItemInventory : party.MonsterParty.ItemInventory;
     }
 
     public List<Character> CurrentOpponentParty(PartyManager party) =>
-        CurrentCharacterList == party.HeroPartyList ? party.MonsterPartyList : party.HeroPartyList;
+        CurrentCharacterList == party.HeroParty.PartyList ? party.MonsterParty.PartyList : party.HeroParty.PartyList;
 
-    public string CurrentPartyName(PartyManager party) => CurrentCharacterList == party.HeroPartyList ? "Hero" : "Monster";
+    public string CurrentPartyName(PartyManager party) => CurrentCharacterList == party.HeroParty.PartyList ? "Hero" : "Monster";
     public string OpponentPartyName(PartyManager party) => CurrentPartyName(party) == "Hero" ? "Monster" : "Hero";
 
     public bool TargetHasDefensiveModifier(PartyManager party) =>
@@ -168,20 +169,19 @@
     }
 
     public List<Character> CurrentParty(PartyManager party) => 
-        RoundCounter % 2 == 0 ? party.HeroPartyList : party.MonsterPartyList;
+        RoundCounter % 2 == 0 ? party.HeroParty.PartyList : party.MonsterParty.PartyList;
 
-    public Character CurrentPlayerType(PartyManager party) => RoundCounter % 2 == 0 ? party.HeroPlayer : party.MonsterPlayer;
+    public Character CurrentPlayerType(PartyManager party) => RoundCounter % 2 == 0 ? party.HeroParty.Player : party.MonsterParty.Player;
 
-    public void PartyTurnSetUp(PartyManager party)  
+    public void CurrentPartyTurnSetUp(PartyManager party)
     {
         CurrentPartyTurnData(party);
         CurrentSelectedCharacter(party);
         UpdateCurrentGearInventory(party);
     }
 
-    public event Action<TurnManager> TauntMessage;
-    public List<Character> TauntedCharacters = new List<Character>();
-
+    public event Action CharacterTurnEnd;
+    public event Action<PartyManager> PartyTurnEnd;
     public void RunCurrentParty(TurnManager turn, DisplayInformation info, PartyManager party)
     {
         for (int index = 0; index < CurrentCharacterList.Count; index++)
@@ -191,10 +191,10 @@
             new InputManager().UserManager(turn, party, info);
             
             CheckComputerDelay(turn);
-            party.DeathManager(party, info, turn);
-            party.ManagePartyDefeated(party, turn, info);
+            party.DeathManager(turn);
+            party.ManagePartyDefeated(turn);
             CharacterTurnEnd?.Invoke();
-            if (party.CheckForEmptyParties()) break; // Before it checked just heroes
+            if (party.CheckForEmptyParties()) break;
         }   
         PartyTurnEnd?.Invoke(party);
     }
@@ -204,6 +204,8 @@
         if (turn.SelectedPlayerType is Computer) Thread.Sleep(500);
     }
 
+    public List<Character> TauntedCharacters = new List<Character>();
+    public event Action<TurnManager> TauntMessage;
     public void ManageTaunt(TurnManager turn)
     {
         if (CheckTaunt())
@@ -225,33 +227,33 @@
 
     public void TransferSelectedCharacterWeapon(PartyManager party)
     {
-        if (CurrentGearInventory == party.HeroGearInventory)
-            party.HeroGearInventory.Add(SelectedCharacter.Weapon!);
+        if (CurrentGearInventory == party.HeroParty.GearInventory)
+            party.HeroParty.AddGear(SelectedCharacter.Weapon!);
         else
-            party.MonsterGearInventory.Add(SelectedCharacter.Weapon!);
+            party.MonsterParty.AddGear(SelectedCharacter.Weapon!);
     }
 
     public void TransferSelectedCharacterArmor(PartyManager party)
     {
-        if (CurrentGearInventory == party.HeroGearInventory)
-            party.HeroGearInventory.Add(SelectedCharacter.Armor!);
+        if (CurrentGearInventory == party.HeroParty.GearInventory)
+            party.HeroParty.AddGear(SelectedCharacter.Armor!);
         else
-            party.MonsterGearInventory.Add(SelectedCharacter.Armor!);
+            party.MonsterParty.AddGear(SelectedCharacter.Armor!);
     }
 
     public bool SelectedCharacterHasEquippedWeapon() => SelectedCharacter.Weapon is not null;
     public bool SelectedCharacterHasEquippedArmor() => SelectedCharacter.Armor is not null;
 
-    public void UpdateCurrentGearInventory(PartyManager party) => CurrentGearInventory =
-        CurrentCharacterList == party.HeroPartyList ? party.HeroGearInventory : party.MonsterGearInventory;
+    public void UpdateCurrentGearInventory(PartyManager party) => CurrentGearInventory = CurrentCharacterList == 
+            party.HeroParty.PartyList ? party.HeroParty.GearInventory : party.MonsterParty.GearInventory;
 
     public bool CurrentPlayerIsComputer() => SelectedPlayerType is Computer;
 
     public Character OpponentPlayer(PartyManager party)
     {
-        if (CurrentParty(party) == party.HeroPartyList)
-            return party.MonsterPlayer;
+        if (CurrentParty(party) == party.HeroParty.PartyList)
+            return party.MonsterParty.Player;
         else
-            return party.HeroPlayer;
+            return party.HeroParty.Player;
     }
 }
