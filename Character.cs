@@ -38,7 +38,6 @@ public class Computer : Character
 
     public void ExecuteAction(PartyManager party, TurnManager turn)
     {
-        InputManager input = new InputManager();
         int targetsCount = 0;
         foreach (Character c in turn.CurrentOpponentParty(party))
             targetsCount++;
@@ -49,7 +48,7 @@ public class Computer : Character
         List<int> gearAttacks = new List<int>();
         int actionNumber;
 
-        List<AttackActions> availableActions = input.ActionAvailableCheck(party, turn);
+        List<AttackActions> availableActions = new InputManager().ActionAvailableCheck(party, turn);
 
         for (int index = 0; index < availableActions.Count; index++)
         {
@@ -64,7 +63,7 @@ public class Computer : Character
             int gearIndex = new Random().Next(gearAttacks.Count);
             actionNumber = gearAttacks[gearIndex];
         }
-        else if (randomNumber < 70) // I put a high chance for computer to choose this, which excludes nothing
+        else if (randomNumber < 70)
         {
             int attackIndex = new Random().Next(normalAttacks.Count);
             actionNumber = normalAttacks[attackIndex];
@@ -72,31 +71,29 @@ public class Computer : Character
         else
             actionNumber = normalAttacks[0];
 
-        input.InputAction(party, turn, availableActions[actionNumber]);
+        new InputManager().InputAction(party, turn, availableActions[actionNumber]);
     }
 
-    public void SelectItem(List<Consumables> itemList, TurnManager turn)
+    public void ComputerSelectItem(List<Consumables> itemList, TurnManager turn)
     {
         int optionsCount = 0;
         foreach (Consumables item in itemList)
             optionsCount++;
 
-        Random random = new Random();
-
-        turn.ConsumableSelectedNumber = random.Next(0, optionsCount);
+        turn.ConsumableSelectedNumber = new Random().Next(0, optionsCount);
         turn.ConsumableSelected = itemList[turn.ConsumableSelectedNumber];
     }
 
-    public int MenuOption(PartyManager party, TurnManager turn, DisplayInformation info)
+    public int ComputerMenuOption(PartyManager party, TurnManager turn, DisplayInformation info)
     {
-        InputManager input = new InputManager();
         int randomNumber = new Random().Next(100);
         int computerChoice = 0;
 
         Character character = turn.SelectedCharacter;
         List<Consumables> itemInventory = turn.GetCurrentItemInventory(party);
+        
         if (itemInventory.Any(x => x is Consumables) && character?.CurrentHP < character?.MaxHP / 4 && randomNumber < 90)
-        { // Testing: / 4
+        { // 1/4 health
             computerChoice = 2; // use item
         }
         else if (character?.Weapon == null && turn.CurrentGearInventory.Count >= 1 && randomNumber < 50)
@@ -106,11 +103,11 @@ public class Computer : Character
         else if (randomNumber < 90)
             computerChoice = 1; // attack
 
-        info.DisplayCorrectMenu(computerChoice, party, turn, info);
+        turn.CurrentMenu(computerChoice, party, turn, info);
         return computerChoice;
     }
 
-    public void SelectGear(TurnManager turn)
+    public void ComputerSelectGear(TurnManager turn)
     {
         int count = turn.CurrentGearInventory.Count;
         int randomNumber = new Random().Next(0, count);
@@ -123,7 +120,7 @@ public abstract class Hero : Character
 
 }
 
-public class TrueProgrammer : Hero // if this is a computer, default name should be "Computer"
+public class TrueProgrammer : Hero
 {
     public int DefaultMaxHP { get; } = 25;
 
@@ -139,11 +136,14 @@ public class TrueProgrammer : Hero // if this is a computer, default name should
 
     public string DefineName(Character characterType)
     {
-        InputManager manageInput = new InputManager();
         if (characterType is Computer)
             return new Computer().Name;
         else
-            return manageInput.AskUser("What's your character's name?");
+        {
+            Console.Clear();
+            new InputManager().InputPosition();
+            return new InputManager().AskUser("What's your character's name?");
+        }  
     }
 }
 
@@ -164,7 +164,7 @@ public class VinFletcher : Hero
     }
 }
 
-public class MylaraAndSkorin : Hero // consider separating these
+public class MylaraAndSkorin : Hero
 {
     int DefaultMaxHP { get; } = 10;
 
