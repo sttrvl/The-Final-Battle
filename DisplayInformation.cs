@@ -273,7 +273,7 @@ public class DisplayInformation
             new ColoredText($"{turn.CurrentPartyName(party)}'s", PartyColor(party, turn.CurrentParty(party))),
             new ColoredText($" obtained: ", ConsoleColor.Green)
         };
-        foreach (Gear gear in party.MonsterGearInventory)
+        foreach (Gear gear in party.MonsterParty.GearInventory)
             colorText.Add(new ColoredText($"{gear}", GearColor(gear)));
 
         LogMessages.Add(colorText);
@@ -299,7 +299,7 @@ public class DisplayInformation
             new ColoredText($"{turn.CurrentPartyName(party)}'s", PartyColor(party, turn.CurrentParty(party))),
             new ColoredText($" obtained: ", ConsoleColor.Green)
         };
-        foreach (Consumables item in party.MonsterItemInventory)
+        foreach (Consumables item in party.MonsterParty.ItemInventory)
             colorText.Add(new ColoredText($"{item} ", ItemColor(item)));
 
         LogMessages.Add(colorText);
@@ -339,7 +339,7 @@ public class DisplayInformation
     {
         string opponentName = turn.OpponentPartyName(party);
         List<ColoredText> colorText = new List<ColoredText>();
-        if (turn.CurrentOpponentParty(party) == party.HeroPartyList)
+        if (turn.CurrentOpponentParty(party) == party.HeroParty.PartyList)
         {
             colorText.Add(new ColoredText($"{turn.CurrentPartyName(party)}'s", PartyColor(party, turn.CurrentParty(party))));
             colorText.Add(new ColoredText($" won!, ", ConsoleColor.Cyan));
@@ -347,7 +347,7 @@ public class DisplayInformation
             colorText.Add(new ColoredText($"lost. ", ConsoleColor.Cyan));
             colorText.Add(new ColoredText($"Uncoded One’s forces have prevailed.", ConsoleColor.Cyan));
         }
-        else if (turn.CurrentOpponentParty(party) == party.MonsterPartyList && turn.NumberBattleRounds <= 0)
+        else if (turn.CurrentOpponentParty(party) == party.MonsterParty.PartyList && turn.NumberBattleRounds <= 0)
         {
             colorText.Add(new ColoredText($"{turn.CurrentPartyName(party)}", PartyColor(party, turn.CurrentParty(party))));
             colorText.Add(new ColoredText($"'s won!, ", ConsoleColor.Cyan));
@@ -390,10 +390,10 @@ public class DisplayInformation
     private void DrawPartiesStatus(PartyManager party, TurnManager turn)
     {
         Console.SetCursorPosition(0, 1);
-        DisplayPartyInfo(party.HeroPartyList, party, turn);
+        DisplayPartyInfo(party.HeroParty.PartyList, party, turn);
 
         Console.SetCursorPosition(0, 11);
-        DisplayPartyInfo(party.MonsterPartyList, party, turn);
+        DisplayPartyInfo(party.MonsterParty.PartyList, party, turn);
     }
 
     private void DrawSeparators()
@@ -849,7 +849,7 @@ public class DisplayInformation
 
     private ConsoleColor PartyColor(PartyManager party, List<Character> PartyList)
     {
-        if (PartyList == party.HeroPartyList) return ConsoleColor.DarkGreen;
+        if (PartyList == party.HeroParty.PartyList) return ConsoleColor.DarkGreen;
 
         return ConsoleColor.DarkRed;
     }
