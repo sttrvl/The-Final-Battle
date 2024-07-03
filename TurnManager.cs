@@ -1,6 +1,4 @@
-﻿using System.IO;
-
-public class TurnManager
+﻿public class TurnManager // Possible structs here
 {
     public int Round { get; private set; } = 0;
     public int RoundCounter { get; private set; }
@@ -34,12 +32,14 @@ public class TurnManager
         public Character Character { get; set; }
         public List<Character> CharacterParty { get; set; }
         public int TurnsPoisoned { get; set; }
+        public int PoisonDamage { get; private set; }
 
-        public PoisonedCharacterInfo(Character character, List<Character> characterParty, int turnsPoisoned)
+        public PoisonedCharacterInfo(Character character, List<Character> characterParty, int turnsPoisoned, int poisonDamage)
         {
             Character = character;
             CharacterParty = characterParty;
             TurnsPoisoned = turnsPoisoned;
+            PoisonDamage = poisonDamage;
         }
     };
 
@@ -48,7 +48,6 @@ public class TurnManager
         public Character Character { get; set; }
         public List<Character> CharacterParty { get; set; }
         public int TurnsSick { get; set; }
-        public int? ForcedChoice { get; set; } = null;
 
         public SickPlaguedCharacterInfo(Character character, List<Character> characterParty, int turnsSick)
         {
@@ -68,6 +67,31 @@ public class TurnManager
         party.AdditionalMonsterRound += NextBattle;
     }
 
+    public event Action<TurnManager> TurnSkipped;
+
+    public int CurrentMenu(int? choice, PartyManager party, TurnManager turn, DisplayInformation info)
+    {
+        switch (choice)
+        {
+            case 1:
+                info.DisplayActionList(party, turn);
+                break;
+            case 2:
+                info.DisplayCurrentInventoryItems(turn.GetCurrentItemInventory(party), info);
+                break;
+            case 3:
+                turn.GetCurrentItemInventory(party);
+                info.DisplayCurrentGearInventory(turn.CurrentGearInventory, info);
+                break;
+            case 0:
+            default:
+                turn.CurrentAttack = new Nothing();
+                TurnSkipped?.Invoke(turn);
+                break;
+        };
+        return (int)choice;
+    }
+
     public void ManageTurnEnd(TurnManager turn, PartyManager party)
     {
         ManagePoisoned(turn, party);
@@ -82,28 +106,16 @@ public class TurnManager
             party.MonsterPartyTurn++;
     }
     
-    public void GetCurrentPartyTurn(PartyManager party)
-    {
-        if (CurrentParty(party) == party.HeroPartyList)
-            CurrentPartyTurn = party.HeroPartyTurn;
-        else
-            CurrentPartyTurn = party.MonsterPartyTurn;
-    }
-    private int CurrentPartyTurn { get; set; } = 0;
     public void ManagePoisoned(TurnManager turn, PartyManager party)
     {
-        if (party.CheckForPoisonedCharacter(turn))
-        {
-            party.PoisonCharacter(turn);
-        }
+        party.RemoveInvalidSickCharacter(turn);
+        if (party.CheckForPoisonedCharacter(turn)) party.PoisonCharacter(turn);
     }
 
     public void ManagePlagueSick(TurnManager turn, PartyManager party)
     {
-        if (party.CheckForPlagueSickCharacter(turn))
-        {
-            party.PlagueSickCharacter(turn);
-        }
+        party.RemoveInvalidPlagueCharacter(turn);
+        if (party.CheckForPlagueSickCharacter(turn)) party.PlagueSickCharacter(turn);
     }
 
     public void UpdateCharacterNumber() =>
@@ -172,22 +184,18 @@ public class TurnManager
 
     public void RunCurrentParty(TurnManager turn, DisplayInformation info, PartyManager party)
     {
-        InputManager input = new InputManager();
         for (int index = 0; index < CurrentCharacterList.Count; index++)
         {
-            SelectedCharacter = CurrentCharacterList[index];
-            // Fix: separate way more DisplayCharacterTurnNext, might rename
-            info.DisplayCharacterTurnText(party, turn);
-            input.UserManager(turn, party, info);
-
+            SelectedCharacter = CurrentCharacterList[index]; // might have a method for this
+            info.UpdateTurnDisplay(party, turn);
+            new InputManager().UserManager(turn, party, info);
+            
+            CheckComputerDelay(turn);
             party.DeathManager(party, info, turn);
             party.ManagePartyDefeated(party, turn, info);
-
             CharacterTurnEnd?.Invoke();
-            if (party.CheckForEmptyParties()) break;
-
-            CheckComputerDelay(turn);
-        }
+            if (party.CheckForEmptyParties()) break; // Before it checked just heroes
+        }   
         PartyTurnEnd?.Invoke(party);
     }
 
@@ -196,8 +204,8 @@ public class TurnManager
         if (turn.SelectedPlayerType is Computer) Thread.Sleep(500);
     }
 
-    public void ManageTaunt(TurnManager turn) // we could make it so if the type of that character is in the list
-    {                                         // so ones of the same type do not taunt again, but this makes more sense
+    public void ManageTaunt(TurnManager turn)
+    {
         if (CheckTaunt())
         {                                               
             TauntedCharacters.Add(SelectedCharacter);
