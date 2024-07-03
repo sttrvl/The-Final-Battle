@@ -1,15 +1,15 @@
-﻿using static TurnManager;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using static PartyManager;
+using static TurnManager;
 
-public class PartyManager
+public class PartyManager // Honestly many of the things here could had been done within a struct..
 {
-
-    // PartyPlayer and List can be a struct, also with both of their inventories
-
     public int MonsterPartyTurn { get; set; } = 0;
     public int HeroPartyTurn { get; set; } = 0;
     public Character HeroPlayer { get; set; }
     public List<Character> HeroPartyList { get; set; } = new List<Character>();
-
     public Character MonsterPlayer { get; set; }
     public List<Character> MonsterPartyList { get; set; } = new List<Character>();
     public List<List<Character>> AdditionalMonsterLists { get; set; } = new List<List<Character>>();
@@ -17,13 +17,9 @@ public class PartyManager
     public List<Gear?> HeroGearInventory = new List<Gear?>();
 
     public List<Gear?> MonsterGearInventory = new List<Gear?>();
-
     public List<List<Consumables>?> AdditionalItemLists { get; set; } = new List<List<Consumables>?>();
-
-    public List<List<Gear>> AdditionalGearLists { get; set; } = new List<List<Gear>>();
-
+    public List<List<Gear?>> AdditionalGearLists { get; set; } = new List<List<Gear>>();
     public List<Consumables> HeroItemInventory { get; set; } = new List<Consumables>();
-
     public List<Consumables> MonsterItemInventory { get; set; } = new List<Consumables>();
 
     public event Action AdditionalMonsterRound;
@@ -38,46 +34,65 @@ public class PartyManager
 
     public PartyManager()
     {
-        ConsumableItemUsed += UpdateCharacterHealth;
+        ConsumableItemUsed += ManageCharacterHealth;
     }
 
-    public bool CheckForPoisonedCharacter(TurnManager turn)
+    public void ManageCharacterHealth(TurnManager turn) // target character?
     {
-        for (int index = 0; index < turn.CurrentPoisonedCharacters.Count; index++)
+        UpdateCharacterHealth(turn);
+        RemoveItem(turn);
+    }
+
+    private void UpdateCharacterHealth(TurnManager turn)
+    {
+        turn.SelectedCharacter.CurrentHP += turn.CurrentHealValue;
+        turn.SelectedCharacter.CurrentHP = Math.Clamp(turn.SelectedCharacter.CurrentHP, 0, turn.SelectedCharacter.MaxHP);
+    }
+
+    private void RemoveItem(TurnManager turn)
+    {
+        List<Consumables> ItemInventory = turn.GetCurrentItemInventory(this);
+        if (ItemInventory.Count > 0) ItemInventory.RemoveAt(turn.ConsumableSelectedNumber);
+    }
+
+    public bool CheckForPoisonedCharacter(TurnManager turn) => turn.CurrentPoisonedCharacters.Count > 0;
+
+    public void RemoveInvalidSickCharacter(TurnManager turn)
+    {
+        for (int index = turn.CurrentPoisonedCharacters.Count - 1; index >= 0; index--)
         {
             PoisonedCharacterInfo poisoned = turn.CurrentPoisonedCharacters[index];
-            if (poisoned.TurnsPoisoned == 0)
-                turn.CurrentPoisonedCharacters.Remove(poisoned);
+            if (poisoned.TurnsPoisoned == 0 || poisoned.Character.IsDeath()) turn.CurrentPoisonedCharacters.RemoveAt(index);
         }
-        return turn.CurrentPoisonedCharacters.Count > 0;
     }
 
-    public bool CheckForPlagueSickCharacter(TurnManager turn)
+    public void RemoveInvalidPlagueCharacter(TurnManager turn)
     {
-        for (int index = 0; index < turn.CurrentSickPlagueCharacters.Count; index++)
+        for (int index = turn.CurrentSickPlagueCharacters.Count - 1; index >= 0; index--)
         {
             SickPlaguedCharacterInfo sick = turn.CurrentSickPlagueCharacters[index];
-            if (sick.TurnsSick == 0)
-                turn.CurrentSickPlagueCharacters.Remove(sick);
+            if (sick.TurnsSick == 0 || sick.Character.IsDeath()) turn.CurrentSickPlagueCharacters.RemoveAt(index);
         }
-        return turn.CurrentSickPlagueCharacters.Count > 0;
     }
+
+    public bool CheckForPlagueSickCharacter(TurnManager turn) => turn.CurrentSickPlagueCharacters.Count > 0;
+
+
+    public event Action<Character, int> PoisonDamage;
 
     public void PoisonCharacter(TurnManager turn)
     {
         for (int index = 0; index < turn.CurrentPoisonedCharacters.Count; index++)
         {
-            PoisonedCharacterInfo poisoned = turn.CurrentPoisonedCharacters[index]; 
-            poisoned.Character.CurrentHP -= 1; // we could also pass the poison damage
-            poisoned.Character.CurrentHP = poisoned.Character.HealthClamp();
+            PoisonedCharacterInfo poisoned = turn.CurrentPoisonedCharacters[index];
+            UpdateHealthReduce(poisoned.Character, poisoned.PoisonDamage);
             poisoned.TurnsPoisoned -= 1;
             turn.CurrentPoisonedCharacters[index] = poisoned;
-            PoisonDamage.Invoke(poisoned.Character);
+            PoisonDamage.Invoke(poisoned.Character, poisoned.PoisonDamage);
         }   
     }
 
-    public event Action<Character> PoisonDamage;
-
+    public event Action<Character> PlagueSickDamage;
     public void PlagueSickCharacter(TurnManager turn)
     {
         for (int index = 0; index < turn.CurrentSickPlagueCharacters.Count; index++)
@@ -90,78 +105,92 @@ public class PartyManager
         }
     }
 
-    public event Action<Character> PlagueSickDamage;
-
-    public void UpdateCharacterHealth(TurnManager turn)
-    {
-        turn.SelectedCharacter.CurrentHP += turn.CurrentHealValue;
-        turn.SelectedCharacter.CurrentHP = Math.Clamp(turn.SelectedCharacter.CurrentHP, 0, turn.SelectedCharacter.MaxHP);
-
-        if (turn.GetCurrentItemInventory(this).Count > 0) turn.GetCurrentItemInventory(this).RemoveAt(turn.ConsumableSelectedNumber);
-    }
-
     public void SetUpParties(List<MenuOption> menu, DisplayInformation info, TurnManager turn, PartyManager party)
     {
+        ManagePlayers(turn, menu, info);
         PartySetUpSettings(menu, info, turn, party);
         Console.Clear();
     }
 
-    public record Level(Consumables? ExtraItemType, int itemAmount, Gear? ExtraGearType, int gearAmount,
-                        Gear? equippedGearChoice,          params Character[] characters);
+    private void ManagePlayers(TurnManager turn, List<MenuOption> menu, DisplayInformation info)
+    {
+        (HeroPlayer, MonsterPlayer) = new InputManager().MenuSetter(new InputManager().InputMenuOption(menu, info));
+        SelectStartingPlayer(HeroPlayer, turn);
+    }
+
+    // this should maybe go in Turn
+    private void SelectStartingPlayer(Character character, TurnManager turn) => turn.SelectedPlayerType = HeroPlayer;
+
+    public record Level(Consumables? ExtraItemType, int itemAmount, 
+                        Gear? ExtraGearType       , int gearAmount, Gear? equippedGearChoice, params Character[] characters);
+
 
     public void PartySetUpSettings(List<MenuOption> menu, DisplayInformation info, TurnManager turn, PartyManager party)
     {
-        InputManager input = new InputManager();
-        (HeroPlayer, MonsterPlayer) = input.MenuSetter(input.InputMenuOption(menu, info));
-        turn.SelectedPlayerType = HeroPlayer;
-
-        //CreateHeroParty(HeroPlayer, new TrueProgrammer(HeroPlayer), new VinFletcher(), new MylaraAndSkorin(turn));
-        //CreateMonsterParty(MonsterPlayer, new Skeleton(), new StoneAmarok(), new EvilRobot());
-
         List<Level> levels = LoadLevelsFromFile("Levels.txt", turn);
-        Dictionary<Character, Gear> noGear = new Dictionary<Character, Gear>();
 
         foreach (Level level in levels)
         {
-            List<Dictionary<Character, Gear?>> currentGearChoices = new List<Dictionary<Character, Gear?>>();
-            if (level.equippedGearChoice != null)
-                currentGearChoices.Add(SetUpCharacterWithGear(level.equippedGearChoice, level.characters));
-            else
-                currentGearChoices.Add(SetUpCharacterWithGear(null, level.characters));
-
-            // ok so HeroGearInventoryGets added
-
-            for (int index = 0; index < currentGearChoices.Count; index++)
-            {
-                AddRound(currentGearChoices[0], RetriveCharactersWithGear(currentGearChoices[0]), party, 
-                         level.ExtraItemType, level.itemAmount, level.ExtraGearType, level.gearAmount);
-            }
+            List<Dictionary<Character, Gear?>> currentGearChoices = FileGearChoices(level);
+            ManageFileRounds(currentGearChoices, level, party);
         }
     }
 
+    private void ManageFileRounds(List<Dictionary<Character, Gear?>> currentGearChoices, Level level, PartyManager party)
+    {
+        for (int index = 0; index < currentGearChoices.Count; index++)
+            AddRound(currentGearChoices[0], RetriveCharactersWithGear(currentGearChoices[0]), party,
+                     level.ExtraItemType, level.itemAmount, level.ExtraGearType, level.gearAmount);
+    }
+
+    private List<Dictionary<Character, Gear?>> FileGearChoices(Level level)
+    {
+        List<Dictionary<Character, Gear?>> choices = new List<Dictionary<Character, Gear?>>();
+        if (level.equippedGearChoice != null)
+            choices.Add(SetUpCharacterWithGear(level.equippedGearChoice, level.characters));
+        else
+            choices.Add(SetUpCharacterWithGear(null, level.characters));
+
+        return choices;
+    }
+
+    // fix encapsulate better
     public List<Level> LoadLevelsFromFile(string filePath, TurnManager turn)
     {
-        List<Level> levels = new List<Level>();
-
         string[] levelStrings = File.ReadAllLines(filePath);
-        List<string> levelStringList =levelStrings.ToList();
-        levelStringList.RemoveAt(0);
-        levelStringList.RemoveAt(0);
+        List<string> levelStringList = levelStrings.ToList();
+        IgnoreListFirstLines(levelStringList, 2);
+
+        List<Level> levels = new List<Level>();
         foreach (string levelString in levelStringList)
         {
-            List<Character> characters = new List<Character>();
             string[] tokens = levelString.Split(',');
 
-            for (int index = 5; index < tokens.Length; index++)
-                characters.Add(GetCharacter(tokens[index].Trim(), turn));
-
-            int extraItemAmount = Convert.ToInt32(tokens[1].Trim());
-            int extraGearAmount = Convert.ToInt32(tokens[3].Trim());
+            List<Character> characters = ManageFileCharacters(turn, tokens);
+            int extraItemAmount = ManageFileItemAmount(tokens);
+            int extraGearAmount = ManageFileGearAmount(tokens);
 
             levels.Add(new Level(GetItem(tokens[0].Trim(), turn), extraItemAmount, GetGear(tokens[2].Trim(), turn),
                        extraGearAmount, GetGear(tokens[4].Trim(), turn), characters.ToArray()));
         }
         return levels;
+    }
+
+    private int ManageFileItemAmount(string[] tokens) => Convert.ToInt32(tokens[1].Trim());
+    private int ManageFileGearAmount(string[] tokens) => Convert.ToInt32(tokens[3].Trim());
+
+    private List<Character> ManageFileCharacters(TurnManager turn, string[] tokens)
+    {
+        List<Character> characters = new List<Character>();
+        for (int index = 5; index < tokens.Length; index++)
+            characters.Add(GetCharacter(tokens[index].Trim(), turn));
+
+        return characters;
+    }
+
+    private void IgnoreListFirstLines(List<string> levelStringList, int amount)
+    {
+        levelStringList.RemoveRange(0, amount);
     }
 
     public Consumables? GetItem(string consumableType, TurnManager turn)
@@ -185,7 +214,7 @@ public class PartyManager
             "cannonofconsolas" => new CannonOfConsolas(turn),
             "binaryhelm"       => new BinaryHelm(),
             "nogear"           => null,
-            "default"          => default, // DEBUG
+            "default"          => default,
             _                  => null
         };
     }
@@ -193,7 +222,7 @@ public class PartyManager
     public Character GetCharacter(string character, TurnManager turn)
     {
         return character.ToLower() switch
-        {   // It's a problem if we use it before It's been set, since even if It's a Computer it will ask for a name.
+        {
             "trueprogrammer"  => new TrueProgrammer(turn.SelectedPlayerType), 
             "vinfletcher"     => new VinFletcher(),
             "skeleton"        => new Skeleton(),
@@ -206,81 +235,86 @@ public class PartyManager
         };
     }
 
-    public void CreateHeroParty(Character playerType, params Character[] heroes)
-    {
-        (HeroPartyList, HeroPlayer) = CreatePlayer(new List<Character>(), playerType);
-
-        foreach (Character character in heroes)
-            HeroPartyList.Add(character);
-    }
-
-    public void CreateMonsterParty(Character playerType, params Character[] monsters)
-    {
-        (MonsterPartyList, MonsterPlayer) = CreatePlayer(new List<Character>(), playerType);
-
-        foreach (Character character in monsters)
-            MonsterPartyList.Add(character);
-    }
-
-    public (List<Character>, Character) CreatePlayer(List<Character> newParty, Character partyType) => (newParty, partyType);
-
     public void AddRound(Dictionary<Character, Gear?> gearChoices, List<Character> characterList, PartyManager party, 
                          Consumables itemType, int itemAmount, Gear? gearType, int gearAmount)
     {
         AddGearChoices(gearChoices, characterList);
 
         if (party.IsPartyEmpty(party.HeroPartyList))
-        {
-            foreach (Character character in characterList)
-                HeroPartyList.Add(character);
-
-            if (gearType != null && gearAmount > 0)
-                for (int index = 0; index < gearAmount; index++)
-                    party.HeroGearInventory.Add(gearType);
-
-            if (itemType != null && itemAmount > 0)
-                for (int index = 0; index < itemAmount; index++)
-                    party.HeroItemInventory.Add(itemType);
-        }
+            CreateHeroParty(gearType, gearAmount, itemType, itemAmount, characterList);
         else if (party.IsPartyEmpty(party.MonsterPartyList))
-        {
-            foreach (Character character in characterList)
-                MonsterPartyList.Add(character);
-
-            if (gearType != null && gearAmount > 0)
-                for (int index = 0; index < gearAmount; index++)
-                    party.MonsterGearInventory.Add(gearType);
-
-            if (itemType != null && itemAmount > 0)
-                for (int index = 0; index < itemAmount; index++)
-                    party.MonsterItemInventory.Add(itemType);
-        }
+            CreateMonsterParty(gearType, gearAmount, itemType, itemAmount, characterList);
         else
-        {
-            List<Gear> gearList = new List<Gear>();
-            for (int index = 0; index < gearAmount; index++)
-                gearList.Add(gearType);
-
-            if (gearType != null && gearAmount > 0)
-                party.AdditionalGearLists.Add(gearList);
-            else
-                AdditionalGearLists.Add(new List<Gear>());
-
-            List<Consumables> itemList = new List<Consumables>();
-            for (int index = 0; index < itemAmount; index++)
-                itemList.Add(itemType);
-
-            if (itemType != null && itemAmount > 0)
-                party.AdditionalItemLists.Add(itemList);
-            else
-                AdditionalItemLists.Add(new List<Consumables>());
-
-
-            AdditionalMonsterLists.Add(characterList);
-            AdditionalMonsterRound?.Invoke();
-        }
+            ManageAdditionalMonsterLists(gearType, gearAmount, itemType, itemAmount, characterList);
     }
 
+    
+    private void CreateHeroParty(Gear? gearType, int gearAmount, Consumables itemType, int itemAmount,
+                                    List<Character> characterList)
+    {
+        foreach (Character character in characterList)
+            HeroPartyList.Add(character);
+
+        if (IsValid(gearType, gearAmount))
+            for (int index = 0; index < gearAmount; index++)
+                HeroGearInventory.Add(gearType);
+
+        if (IsValid(itemType, itemAmount))
+            for (int index = 0; index < itemAmount; index++)
+                HeroItemInventory.Add(itemType);
+    }
+    // I think it was more complicated to try to reuse code here, or at least that I can think of
+    private void CreateMonsterParty(Gear? gearType, int gearAmount, Consumables itemType, int itemAmount,
+                                    List<Character> characterList)
+    {
+        foreach (Character character in characterList)
+            MonsterPartyList.Add(character);
+
+        if (IsValid(gearType, gearAmount))
+            for (int index = 0; index < gearAmount; index++)
+                MonsterGearInventory.Add(gearType);
+
+        if (IsValid(itemType, itemAmount))
+            for (int index = 0; index < itemAmount; index++)
+                MonsterItemInventory.Add(itemType);
+    }
+
+    private void ManageAdditionalMonsterLists(Gear? gearType, int gearAmount, Consumables itemType, int itemAmount,
+                                              List<Character> characterList)
+    {
+        if (IsValid(gearType, gearAmount))
+            AdditionalGearLists.Add(CreateGearList(gearType, gearAmount));
+        else
+            AdditionalGearLists.Add(new List<Gear?>());
+
+        if (IsValid(itemType, itemAmount))
+            AdditionalItemLists.Add(CreateItemList(itemType, itemAmount));
+        else
+            AdditionalItemLists.Add(new List<Consumables>());
+
+        AdditionalMonsterLists.Add(characterList);
+        AdditionalMonsterRound?.Invoke();
+    }
+
+    private List<Gear?> CreateGearList(Gear? inventoryItem, int amount)
+    {
+        List<Gear?> itemList = new List<Gear?>();
+        for (int index = 0; index < amount; index++)
+            itemList.Add(inventoryItem);
+
+        return itemList;
+    }
+
+    private List<Consumables> CreateItemList(Consumables inventoryItem, int amount)
+    {
+        List<Consumables> itemList = new List<Consumables>();
+        for (int index = 0; index < amount; index++)
+            itemList.Add(inventoryItem);
+
+        return itemList;
+    }
+
+    private bool IsValid(InventoryItem? inventoryItem, int amount) => inventoryItem != null && amount > 0;
     private void AddGearChoices(Dictionary<Character, Gear?> gearChoices, List<Character> characterList)
     {
         foreach (Character character in characterList)
@@ -291,7 +325,6 @@ public class PartyManager
     public Dictionary<Character, Gear?> SetUpCharacterWithGear(Gear? gearType, params Character[] characterType)
     {
         Dictionary<Character, Gear?> gearChoice = new Dictionary<Character, Gear?>();
-
         foreach (Character character in characterType)
                 gearChoice.Add(character, gearType);
 
@@ -320,22 +353,24 @@ public class PartyManager
             CheckTemporaryEffect(party, turn);
             CheckSoulValue(party, turn);
 
-            UpdateHealth(party, turn);
+            ManageHealth(party, turn);
             AttackInfo.Invoke(party, turn);
         }
     }
 
-    private void UpdateHealth(PartyManager party, TurnManager turn)
+    private void ManageHealth(PartyManager party, TurnManager turn)
     {
         if (turn.CurrentAttack is AreaAttack)
             foreach (Character character in turn.CurrentOpponentParty(party))
-            {
-                character.CurrentHP -= turn.CurrentDamage;
-                character.HealthClamp();
-            }
+                UpdateHealthReduce(character, turn.CurrentDamage);
+        else
+            UpdateHealthReduce(turn.CurrentOpponentParty(party)[turn.CurrentTarget], turn.CurrentDamage);
+    }
 
-        turn.CurrentOpponentParty(party)[turn.CurrentTarget].CurrentHP -= turn.CurrentDamage;
-        turn.CurrentOpponentParty(party)[turn.CurrentTarget].CurrentHP = turn.CurrentOpponentParty(party)[turn.CurrentTarget].HealthClamp();
+    private void UpdateHealthReduce(Character character, int damage)
+    {
+        character.CurrentHP -= damage;
+        character.CurrentHP = character.HealthClamp();
     }
 
     private bool AttackManager(PartyManager party, TurnManager turn)
@@ -363,6 +398,7 @@ public class PartyManager
             SoulBonus?.Invoke(turn);
         }
     }
+
     private void CheckModifier(PartyManager party, TurnManager turn)
     {
         if (turn.TargetHasDefensiveModifier(party)) ManageDefensiveModifier(party, turn);
@@ -376,10 +412,7 @@ public class PartyManager
 
     private void CheckTemporaryEffect(PartyManager party, TurnManager turn)
     {
-        if (turn.AttackHasTemporaryEffect())
-        {
-            ApplyTemporaryEffect(turn, party);
-        }
+        if (turn.AttackHasTemporaryEffect()) ApplyTemporaryEffect(turn, party);
     }
 
     private bool ManageProbability(double probability) => new Random().Next(100) < probability * 100;
@@ -454,19 +487,34 @@ public class PartyManager
     public event Action<TurnManager, PartyManager> CharacterPoisoned;
     public void ApplyTemporaryEffect(TurnManager turn, PartyManager party)
     {
+        List<Character> opponentParty = turn.CurrentOpponentParty(party);
+        int target = turn.CurrentTarget;
         switch (turn.CurrentAttack.AttackTemporaryEffect)
         {
             case AttackTemporaryEffects.Poison:
-                Character poisonedTarget = turn.CurrentOpponentParty(party)[turn.CurrentTarget];
-                turn.CurrentPoisonedCharacters.Add(new PoisonedCharacterInfo(poisonedTarget, turn.CurrentOpponentParty(party), 3));
+                Character poisonedTarget = opponentParty[target];
+                turn.CurrentPoisonedCharacters.Add(new PoisonedCharacterInfo(poisonedTarget, opponentParty, 3, 1));
                 CharacterPoisoned?.Invoke(turn, party);
                 break;
             case AttackTemporaryEffects.RotPlague:
-                Character sickPlagueTarget = turn.CurrentOpponentParty(party)[turn.CurrentTarget];
-                turn.CurrentSickPlagueCharacters.Add(new SickPlaguedCharacterInfo(sickPlagueTarget, turn.CurrentOpponentParty(party), 1));
+                Character sickPlagueTarget = opponentParty[target];
+
+                if (IsNotSick(turn, sickPlagueTarget))
+                    turn.CurrentSickPlagueCharacters.Add(new SickPlaguedCharacterInfo(sickPlagueTarget, opponentParty, 1));
                 CharacterPlagueSick?.Invoke(turn, party);
                 break;
         }
+    }
+
+    private bool IsNotSick(TurnManager turn, Character sickPlagueTarget)
+    {
+        for (int index = 0; index < turn.CurrentSickPlagueCharacters.Count; index++)
+        {
+            SickPlaguedCharacterInfo sick = turn.CurrentSickPlagueCharacters[index];
+            if (sick.Character.ID == sickPlagueTarget.ID) return false;
+        }
+
+        return true;
     }
     public event Action<TurnManager, PartyManager> CharacterPlagueSick;
 
@@ -483,29 +531,28 @@ public class PartyManager
 
     public void UseConsumableItem(TurnManager turn) => ConsumableItemUsed.Invoke(turn);
 
+    public event Action<Character> CharacterDied;
     public void DeathManager(PartyManager party, DisplayInformation info, TurnManager turn)
     {
-        if (CheckDeath(turn, party))
+        for (int index = 0; index < turn.CurrentOpponentParty(party).Count; index++)
         {
-            info.DisplayCharacterDeath(turn.CurrentOpponentParty(party), turn.CurrentTarget);
-            ManageDeath(party, turn);
+            if (CheckDeath(turn.CurrentOpponentParty(party)[index]))
+            {
+                CharacterDied.Invoke(turn.CurrentOpponentParty(party)[index]);
+                ManageDeath(party, turn);
+            }
         }
     }
 
-    public bool CheckDeath(TurnManager turn, PartyManager party)
+    public bool CheckDeath(Character character)
     {
-        if (turn.CurrentTarget >= 0 && turn.CurrentTarget < turn.CurrentOpponentParty(party).Count)
-            return turn.CurrentOpponentParty(party)[turn.CurrentTarget].IsDeath();
-
-        return false;
+        return character.IsDeath();
     }
 
     public void ManagePartyDefeated(PartyManager party, TurnManager turn, DisplayInformation info)
     {
-        if (CheckPartyDefeat(party, party.MonsterPartyList))
-            ManageMonsterDefeated(party, turn);
-        if (CheckPartyDefeat(party, party.HeroPartyList))
-            ManageHeroesDefeated(party, turn, info);
+        if (CheckPartyDefeat(party, party.MonsterPartyList)) ManageMonsterDefeated(party, turn);
+        if (CheckPartyDefeat(party, party.HeroPartyList)) ManageHeroesDefeated(party, turn, info);
     }
 
     public void ManageMonsterDefeated(PartyManager party, TurnManager turn)
@@ -517,8 +564,7 @@ public class PartyManager
 
     public void ManageHeroesDefeated(PartyManager party, TurnManager turn, DisplayInformation info)
     {
-        if (party.IsPartyEmpty(party.HeroPartyList))
-            PartyDefeated.Invoke(party, turn);
+        if (party.IsPartyEmpty(party.HeroPartyList)) PartyDefeated.Invoke(party, turn);
     }
 
     private void TransferDeathMonsterPartyGear(PartyManager party, TurnManager turn)
@@ -528,7 +574,7 @@ public class PartyManager
             HeroGearInventory.Add(MonsterGearInventory[index]);
             MonsterGearInventory.Remove(MonsterGearInventory[index]);
         }
-        
+
         GearObtained?.Invoke(turn, party);
     }
 
@@ -550,32 +596,41 @@ public class PartyManager
 
     public void NextMonsterParty(TurnManager turn, PartyManager party)
     {
-        if (turn.NumberBattleRounds > 0)
+        if (HasAdditionalRounds(turn) && HasAdditionalMonsters())
         {
-            if (AdditionalMonsterLists.Count > 0)
-            {
-                foreach (Character character in AdditionalMonsterLists[0])
-                    MonsterPartyList.Add(character);
-
-                AdditionalMonsterLists.RemoveAt(0); // removes "used" monster list
-
-                if (AdditionalGearLists.Count > 0) // count is 4
-                {
-                    foreach (Gear gear in AdditionalGearLists[0]) // good, all count 0
-                        MonsterGearInventory.Add(gear);
-                }
-                AdditionalGearLists.RemoveAt(0);
-
-                if (AdditionalItemLists.Count > 0) // 6 when there should be 4
-                {
-                    foreach (Consumables items in AdditionalItemLists[0]) 
-                        MonsterItemInventory.Add(items);
-                }
-                AdditionalItemLists.RemoveAt(0);
-            }
+            AddAdditionalMonsterList();
+            AddAdditionalItemList();
+            AddAdditionalGearList();
         }
         PartyDefeated?.Invoke(party, turn);
         turn.AdditionalBattleRoundUsed();
+    }
+
+    private bool HasAdditionalRounds(TurnManager turn) => turn.NumberBattleRounds > 0;
+    private bool HasAdditionalMonsters() => AdditionalMonsterLists.Count > 0; // can be reused
+
+    private void AddAdditionalItemList()
+    {
+        if (AdditionalItemLists.Count > 0)
+            foreach (Consumables items in AdditionalItemLists[0])
+                MonsterItemInventory.Add(items);
+
+        AdditionalItemLists.RemoveAt(0);
+    }
+    private void AddAdditionalGearList()
+    {
+        if (AdditionalGearLists.Count > 0)
+            foreach (Gear? gear in AdditionalGearLists[0])
+                MonsterGearInventory.Add(gear);
+
+        AdditionalGearLists.RemoveAt(0);
+    }
+    private void AddAdditionalMonsterList()
+    {
+        foreach (Character character in AdditionalMonsterLists[0])
+            MonsterPartyList.Add(character);
+
+        AdditionalMonsterLists.RemoveAt(0);
     }
 
     public void ManageDeath(PartyManager party, TurnManager turn)
@@ -592,17 +647,24 @@ public class PartyManager
 
     public void ManageDeathCharacterGear(PartyManager party ,TurnManager turn)
     {
-        if (turn.CurrentTargetHasGear(turn.CurrentOpponentParty(this)))
-            AddDeathGearToOpponentInventory(party, turn);
+        if (turn.CurrentTargetHasGear(turn.CurrentOpponentParty(this))) AddDeathGearToOpponentInventory(party, turn);
     }
 
+    public event Action<TurnManager, PartyManager> SoulObtained;
     public void ManageDeathCharacterSoul(PartyManager party, TurnManager turn)
     {
-        if (turn.CurrentOpponentParty(party)[turn.CurrentTarget].SoulsXP >= 1)
-            turn.SelectedCharacter.SoulsValue += turn.CurrentOpponentParty(party)[turn.CurrentTarget].SoulsXP;
-            // Add: invoke something? DeathOpponentGearObtained.Invoke(party, turn);
+        if (turn.SelectedCharacter is Hero) // maybe in a method
+        {
+            UpdateSoulValue(turn);
+            SoulObtained?.Invoke(turn, this);
+        }
     }
 
+    public void UpdateSoulValue(TurnManager turn)
+    {
+        if (turn.CurrentOpponentParty(this)[turn.CurrentTarget].SoulsXP >= 1)
+            turn.SelectedCharacter.SoulsValue += turn.CurrentOpponentParty(this)[turn.CurrentTarget].SoulsXP;
+    }
     public void AddDeathGearToOpponentInventory(PartyManager party, TurnManager turn)
     {
         turn.CurrentGearInventory.Add(turn.CurrentOpponentParty(this)[turn.CurrentTarget].Weapon!);
@@ -620,16 +682,12 @@ public class PartyManager
     {
         if (action != AttackActions.Nothing)
             if (action == turn.SelectedCharacter.Weapon?.Execute()) return true; 
-        // assuming there is no same attack for gears we are okay
-        // else: add && for extra condition
-
+        // assuming there is no same attack for gears we are okay, else: add && for extra condition
         return false;
     }
 
     public bool ActionAvailable(AttackActions action, TurnManager turn)
-    {
-        Character character = turn.SelectedCharacter;
-        
+    {        
         if (action != AttackActions.Nothing)
         {
             if (action == turn.SelectedCharacter.StandardAttack) return true;
@@ -638,24 +696,20 @@ public class PartyManager
         return false;
     }
 
-    public void EquipGear(TurnManager turn, DisplayInformation info)
-    {
-        if (turn.CurrentGearInventory[turn.SelectedGear] is Armor)
-            EquipArmor(turn, info);
-        else
-            EquipWeapon(turn, info);
+    public event Action<TurnManager> GearEquipped;
 
-        info.DisplayGearEquipped(turn); // could be event
-        turn.CurrentGearInventory.RemoveAt(turn.SelectedGear);
+    public void EquipGear(TurnManager turn)
+    {
+        EquipGear(turn.CurrentGearInventory[turn.SelectedGear], turn);
+        GearEquipped.Invoke(turn);
+        RemoveGearFromInventory(turn);
     }
 
-    private void EquipWeapon(TurnManager turn, DisplayInformation info) // pontential reuse?
-    {
-        turn.SelectedCharacter.Weapon = turn.CurrentGearInventory[turn.SelectedGear];
-    }
+    private void RemoveGearFromInventory(TurnManager turn) => turn.CurrentGearInventory.RemoveAt(turn.SelectedGear);
 
-    private void EquipArmor(TurnManager turn, DisplayInformation info)
+    private void EquipGear(Gear gear, TurnManager turn)
     {
-        turn.SelectedCharacter.Armor = turn.CurrentGearInventory[turn.SelectedGear];
+        if (gear is Armor) turn.SelectedCharacter.Armor = turn.CurrentGearInventory[turn.SelectedGear];
+        else turn.SelectedCharacter.Weapon = turn.CurrentGearInventory[turn.SelectedGear];
     }
 }
