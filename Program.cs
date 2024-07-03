@@ -1,32 +1,30 @@
 ﻿
-// Rundown at everything, refactoring       ongoing epic refactoring time yeah yeah rb whittaker best teacher
 // add namespaces
 // finish
 
 Game game = new Game();
 game.Run();
 
-// things that are repeated a lot 1, 22 cursor position done
 // death and sick characters should be removed if death, since the message sometimes displays after death done, fixed
 // still ongoing for plague sickness            seems to be fixed
-// plague sickness should not be stacked        fixed
-// CheckPlague effects, turn not skipping       fixed
-// replace all Input manager for new InputManager() since instances do not matter     done
 
+// when a dagger gets added, the dagger attack displays first when it should be last
+// cursor goes down, we could force it to stay in place
 // some characters still survive after 0 health 
 
 // I need to add like something to put automatically spaces in display maybe
+
+
+// if 0 souls do not display the gauge fill
+
+// re order events
+// add methods to modify the structs instead of doing it directly
+
 
 // character            done
 // gameobjects          done
 // partymanager         done
 // game                 done
 // inputmanager         done
-// turnmanager          checking
+// turnmanager          structs added, events organized, need to organize everything now and helper methods
 // displayinformation   done organized
-
-
-// when a dagger gets added, the dagger attack displays first when it should be last
-// cursor goes down, we could force it to stay in place
-
-// Check if everything is where It's supposed to be living in
