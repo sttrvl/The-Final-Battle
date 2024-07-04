@@ -433,12 +433,12 @@ public class PartyManager
         switch (turn.CurrentOpponentParty(party)[turn.Current.Target].DefensiveAttackModifier)
         {
             case StoneArmor:
-                turn.Current.TargetDefensiveModifier = new StoneArmor();
+                turn.Current.SetTargetDefensiveModifier(new StoneArmor());
                 turn.Current.IncreaseDamage(turn.Current.TargetDefensiveModifier.Value);
                 DefensiveModifierApplied.Invoke(party, turn);
                 break;
             case ObjectSight when turn.Current.Attack.AttackType == AttackTypes.Decoding:
-                turn.Current.TargetDefensiveModifier = new ObjectSight();
+                turn.Current.SetTargetDefensiveModifier(new ObjectSight());
                 turn.Current.IncreaseDamage(turn.Current.TargetDefensiveModifier.Value);
                 turn.ClampCurrentDamage();
                 DefensiveModifierApplied.Invoke(party, turn);
@@ -463,7 +463,7 @@ public class PartyManager
             switch (offensive)
             {
                 case Binary:
-                    turn.Current.OffensiveModifier = new Binary();
+                    turn.Current.SetOffensiveModifier(new Binary());
                     turn.Current.IncreaseDamage(turn.Current.OffensiveModifier.Value);
                     OffensiveModifierApplied.Invoke(party, turn);
                     break;
@@ -666,7 +666,7 @@ public class PartyManager
     public event Action<TurnManager, PartyManager> SoulObtained;
     public void ManageDeathCharacterSoul(TurnManager turn)
     {
-        if (turn.Current.Character is Hero)
+        if (turn.Current.Character is Hero && turn.CurrentOpponentParty(this)[turn.Current.Target].SoulsXP > 0)
         {
             UpdateSoulValue(turn);
             SoulObtained?.Invoke(turn, this);
@@ -715,16 +715,16 @@ public class PartyManager
 
     public void ManageEquipGear(TurnManager turn)
     {
-        EquipGear(turn.Current.GearInventory[turn.Current.Gear], turn);
+        EquipGear(turn.Current.GearInventory[turn.Current.GearChoice], turn);
         GearEquipped.Invoke(turn);
         RemoveGearFromInventory(turn);
     }
 
-    private void RemoveGearFromInventory(TurnManager turn) => turn.Current.GearInventory.RemoveAt(turn.Current.Gear);
+    private void RemoveGearFromInventory(TurnManager turn) => turn.Current.GearInventory.RemoveAt(turn.Current.GearChoice);
 
     private void EquipGear(Gear gear, TurnManager turn)
     {
-        if (gear is Armor) turn.Current.Character.Armor = turn.Current.GearInventory[turn.Current.Gear];
-        else turn.Current.Character.Weapon = turn.Current.GearInventory[turn.Current.Gear];
+        if (gear is Armor) turn.Current.Character.Armor = turn.Current.GearInventory[turn.Current.GearChoice];
+        else turn.Current.Character.Weapon = turn.Current.GearInventory[turn.Current.GearChoice];
     }
 }

@@ -19,46 +19,42 @@ public class TurnManager // Possible structs here
     public CharacterInfo Current = new CharacterInfo();
     public class CharacterInfo
     {
-        public int CharacterNumber { get; set; } = 0; // d
-        public Character PlayerType { get; set; } // d
-        public Character Character { get; set; } // d
+        public int CharacterNumber { get; set; } = 0;
+        public Character PlayerType { get; set; }
+        public Character Character { get; set; }
 
-        public List<Character> CharacterList { get; set; } = new List<Character>(); // d
-
-        public List<Consumables> ItemList { get; set; } = new List<Consumables>(); // d
-
-        public int Target { get; private set; } // d
-        public AttackAction Attack { get; private set; } // d
-        public int Damage { get; private set; } // d
-
-        public double Probability { get; set; }
-        public int Gear { get; set; }
-        public Consumables Consumable { get; set; }
-        public int ConsumableNumber { get; set; }
-        public int HealValue;
-
+        public List<Character> CharacterList { get; set; } = new List<Character>();
+        public List<Consumables> ItemInventory { get; set; } = new List<Consumables>();
         public List<Gear?> GearInventory = new List<Gear?>();
-        public DefensiveAttackModifier TargetDefensiveModifier { get; set; }
-        public OffensiveAttackModifier OffensiveModifier { get; set; }
+
+        public int Target { get; private set; }
+        public AttackAction Attack { get; private set; }
+        public int Damage { get; private set; }
+
+        public double Probability { get; private set; }
+        public int GearChoice { get; private set; }
+        public Consumables Consumable { get; private set; }
+        public int ConsumableNumber { get; private set; }
+        public int HealValue { get; private set; }
+
+        
+        public DefensiveAttackModifier TargetDefensiveModifier { get; private set; }
+        public OffensiveAttackModifier OffensiveModifier { get; private set; }
 
         public void RemoveCharacter(Character character) => CharacterList.Remove(character);
-
         public void AddGear(Gear? gear) => GearInventory.Add(gear);
         public void RemoveGear(Gear? gear) => GearInventory.Remove(gear);
-
         public void IncreaseCharacterNumber() => CharacterNumber++;
         public void ResetCharacterNumber() => CharacterNumber = 0;
-
         public void SetTarget(int target) => Target = target;
         public void SetAttack(AttackAction attack) => Attack = attack;
         public void SetDamage(int damage) => Damage = damage;
         public void IncreaseDamage(int increase) => Damage += increase;
         public void SetProbability(double probability) => Probability = probability;
-        public void SetGear(int gear) => Gear = gear;
+        public void SetGear(int gear) => GearChoice = gear;
         public void SetConsumable(Consumables consumable) => Consumable = consumable;
         public void SetConsumableNumber(int consumableNumber) => ConsumableNumber = consumableNumber;
         public void SetHealValue(int healValue) => HealValue = healValue;
-
         public void SetTargetDefensiveModifier(DefensiveAttackModifier modifier) => TargetDefensiveModifier = modifier;
         public void SetOffensiveModifier(OffensiveAttackModifier modifier) => OffensiveModifier = modifier;
     }
@@ -194,7 +190,7 @@ public class TurnManager // Possible structs here
 
     public List<Consumables> GetCurrentItemInventory(PartyManager party)
     {
-        return Current.ItemList =
+        return Current.ItemInventory =
             Current.CharacterList == party.HeroParty.PartyList ? party.HeroParty.ItemInventory : party.MonsterParty.ItemInventory;
     }
 

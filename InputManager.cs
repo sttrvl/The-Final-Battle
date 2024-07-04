@@ -55,14 +55,14 @@
     {
         turn.Current.SetAttack(attack);
         turn.Current.SetDamage(attack.AttackDamage);
-        turn.Current.Probability = attack.AttackProbability;
+        turn.Current.SetProbability(attack.AttackProbability);
 
         if (attack is Gear) turn.Current.Character.Weapon = (Gear)attack;
     }
 
     private void RetriveItemProperties(TurnManager turn)
     {
-        if (turn.Current.Consumable.Heal != null) turn.Current.HealValue = (int)turn.Current.Consumable.Heal;
+        if (turn.Current.Consumable.Heal != null) turn.Current.SetHealValue((int)turn.Current.Consumable.Heal);
     }
 
     public void AskInputAction(TurnManager turn, PartyManager party, DisplayInformation info)
@@ -269,13 +269,13 @@
     public void ChooseInputGear(TurnManager turn)
     {
         int choice = ChooseOption("Choose gear to equip:", turn.Current.GearInventory.Count);
-        turn.Current.Gear = choice;
+        turn.Current.SetGear(choice);
     }
     
     public void ChooseInputItem(TurnManager turn, PartyManager party)
     {
-        turn.Current.ConsumableNumber = ChooseOption("Choose an item:", turn.GetCurrentItemInventory(party).Count);
-        turn.Current.Consumable = turn.GetCurrentItemInventory(party)[turn.Current.ConsumableNumber];
+        turn.Current.SetConsumableNumber(ChooseOption("Choose an item:", turn.GetCurrentItemInventory(party).Count));
+        turn.Current.SetConsumable(turn.GetCurrentItemInventory(party)[turn.Current.ConsumableNumber]);
     }
 
     public int ChooseOption(string prompt, int maxIndex)
