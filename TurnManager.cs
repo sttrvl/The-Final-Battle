@@ -1,6 +1,17 @@
-﻿using System.Diagnostics.Metrics;
+﻿using TheFinalBattle.GameObjects;
+using TheFinalBattle.Characters;
+using TheFinalBattle.InputManagement;
+using TheFinalBattle.PartyManagement;
+using TheFinalBattle.InformationDisplay;
+using TheFinalBattle.GameObjects.AttackModifiers;
+using TheFinalBattle.GameObjects.Items;
+using TheFinalBattle.GameObjects.Gear;
+using TheFinalBattle.GameObjects.Attacks;
+using System.IO;
 
-public class TurnManager // Possible structs here
+namespace TheFinalBattle.TurnSystem;
+
+public class TurnManager
 {
 
     public RoundInfo Round = new RoundInfo();
@@ -66,7 +77,7 @@ public class TurnManager // Possible structs here
 
     public List<PoisonedCharacterInfo> CurrentPoisonedCharacters { get; set; } = new List<PoisonedCharacterInfo>();
     public List<SickPlaguedCharacterInfo> CurrentSickPlagueCharacters { get; set; } = new List<SickPlaguedCharacterInfo>();
-    public struct PoisonedCharacterInfo // maybe should live in party
+    public struct PoisonedCharacterInfo // could had been put in PartyManager
     {
         public Character Character { get; set; }
         public List<Character> CharacterParty { get; set; }
@@ -82,7 +93,7 @@ public class TurnManager // Possible structs here
         }
     };
 
-    public struct SickPlaguedCharacterInfo // maybe should live in party
+    public struct SickPlaguedCharacterInfo // could had been put in PartyManager
     {
         public Character Character { get; set; }
         public List<Character> CharacterParty { get; set; }
@@ -100,6 +111,7 @@ public class TurnManager // Possible structs here
     public TurnManager(PartyManager party)
     {
         CharacterTurnEnd             += UpdateCharacterNumber;
+        newRound                     += ManageEffectsCharacterTurnEnd;
         PartyTurnEnd                 += ManagePartyTurns;
         party.AdditionalMonsterRound += NextBattle;
     }
@@ -108,45 +120,66 @@ public class TurnManager // Possible structs here
 
     public void SelectStartingPlayer(Character character) => Current.PlayerType = character;
 
-    public int CurrentMenu(int? choice, PartyManager party, TurnManager turn, DisplayInformation info)
+    public int CurrentMenu(PartyManager party, DisplayInformation info, int? choice)
     {
         switch (choice)
         {
             case 1:
-                info.DisplayActionList(party, turn);
+                info.DisplayActionList(party, this);
                 break;
             case 2:
-                info.DisplayCurrentInventoryItems(turn.GetCurrentItemInventory(party), info);
+                info.DisplayCurrentInventoryItems(GetCurrentItemInventory(party));
                 break;
             case 3:
-                turn.GetCurrentItemInventory(party);
-                info.DisplayCurrentGearInventory(Current.GearInventory, info);
+                GetCurrentItemInventory(party);
+                info.DisplayCurrentGearInventory(Current.GearInventory);
                 break;
             case 0:
             default:
                 Current.SetAttack(new Nothing());
-                TurnSkipped?.Invoke(turn);
+                TurnSkipped?.Invoke(this);
                 break;
         };
         return (int)choice;
     }
 
-    public void ManageTurnEnd(TurnManager turn, PartyManager party)
+    public void ManageEffectsCharacterTurnEnd(PartyManager party)
     {
-        ManagePoisoned(turn, party);
-        ManagePlagueSick(turn, party);
+        ManagePoisoned(party);
+        ManagePlagueSick(party);
     }
 
-    public void ManagePoisoned(TurnManager turn, PartyManager party)
+    public void ManagePoisoned(PartyManager party)
     {
-        party.RemoveInvalidPoisonedCharacter(turn);
-        if (party.CheckForPoisonedCharacter(turn)) party.PoisonCharacter(turn);
+        party.RemoveInvalidPoisonedCharacter(this);
+        if (party.CheckForPoisonedCharacter(this) && CurrentCharacterIsPoisoned()) party.PoisonCharacter(this);
     }
 
-    public void ManagePlagueSick(TurnManager turn, PartyManager party)
+    private bool CurrentCharacterIsPoisoned()
     {
-        party.RemoveInvalidPlagueSickCharacter(turn);
-        if (party.CheckForPlagueSickCharacter(turn)) party.PlagueSickCharacter(turn);
+        for (int index = CurrentPoisonedCharacters.Count - 1; index >= 0; index--)
+        {
+            PoisonedCharacterInfo poisoned = CurrentPoisonedCharacters[index];
+            if (poisoned.Character == Current.Character) return true;
+        }
+
+        return false;
+    }
+    public void ManagePlagueSick(PartyManager party)
+    {
+        party.RemoveInvalidPlagueSickCharacter(this);
+        if (party.CheckForPlagueSickCharacter(this) && CurrentCharacterIsSick()) party.PlagueSickCharacter(this);
+    }
+
+    private bool CurrentCharacterIsSick()
+    {
+        for (int index = CurrentSickPlagueCharacters.Count - 1; index >= 0; index--)
+        {
+            SickPlaguedCharacterInfo sick = CurrentSickPlagueCharacters[index];
+            if (sick.Character == Current.Character) return true;
+        }
+
+        return false;
     }
 
     public void ManagePartyTurns(PartyManager party)
@@ -157,7 +190,7 @@ public class TurnManager // Possible structs here
             party.MonsterParty.AddTurns();
     }
 
-    public void UpdateCharacterNumber()
+    public void UpdateCharacterNumber(PartyManager party)
     {
         if (Current.CharacterNumber < Current.CharacterList.Count)
             Current.IncreaseCharacterNumber();
@@ -168,14 +201,13 @@ public class TurnManager // Possible structs here
 
     public void NextBattle() => Round.AddBattle();
 
-    public void CheckForNextRound(TurnManager turn, PartyManager party)
+    public event Action<PartyManager> newRound;
+    public void CheckForNextRound(PartyManager party)
     {
-        if (party.HeroParty.TurnsPlayed == party.MonsterParty.TurnsPlayed)
-        {
-            ManageTurnEnd(turn, party);
-            Round.AddRound();
-        }
+        if (SameTurns(party)) Round.AddRound();
     }
+
+    public bool SameTurns(PartyManager party) => party.HeroParty.TurnsPlayed == party.MonsterParty.TurnsPlayed;
 
     public void AdvanceToNextParty() => Round.AddCount();
 
@@ -200,7 +232,7 @@ public class TurnManager // Possible structs here
     public string CurrentPartyName(PartyManager party) => Current.CharacterList == party.HeroParty.PartyList ? "Hero" : "Monster";
     public string OpponentPartyName(PartyManager party) => CurrentPartyName(party) == "Hero" ? "Monster" : "Hero";
 
-    public bool TargetHasDefensiveModifier(PartyManager party) =>
+    public bool TargetHasDefensiveModifier(PartyManager party) => 
         CurrentOpponentParty(party)[Current.Target].DefensiveAttackModifier != null;
 
     public bool TargetHasOffensiveModifier() => Current.Character?.Armor?.OffensiveAttackModifier  != null ||                                                Current.Character?.Weapon?.OffensiveAttackModifier != null;
@@ -227,38 +259,39 @@ public class TurnManager // Possible structs here
         UpdateCurrentGearInventory(party);
     }
 
-    public event Action CharacterTurnEnd;
+    public event Action<PartyManager> CharacterTurnEnd;
     public event Action<PartyManager> PartyTurnEnd;
-    public void RunCurrentParty(TurnManager turn, DisplayInformation info, PartyManager party)
+    public void RunCurrentParty(PartyManager party, DisplayInformation info)
     {
         for (int index = 0; index < Current.CharacterList.Count; index++)
         {
+            newRound.Invoke(party);
             Current.Character = Current.CharacterList[index];
-            info.UpdateTurnDisplay(party, turn);
-            new InputManager().UserManager(turn, party, info);
+            info.UpdateTurnDisplay(this, party);
+            new InputManager().UserManager(this, party, info);
             
-            CheckComputerDelay(turn);
-            party.DeathManager(turn);
-            party.ManagePartyDefeated(turn);
-            CharacterTurnEnd?.Invoke();
+            CheckComputerDelay();
+            party.DeathManager(this);
+            party.ManagePartyDefeated(this);
+            CharacterTurnEnd?.Invoke(party);;
             if (party.CheckForEmptyParties()) break;
         }   
         PartyTurnEnd?.Invoke(party);
     }
 
-    private void CheckComputerDelay(TurnManager turn)
+    private void CheckComputerDelay()
     {
-        if (Current.PlayerType is Computer) Thread.Sleep(0);
+        if (Current.PlayerType is Computer) Thread.Sleep(1000);
     }
 
     public List<Character> TauntedCharacters = new List<Character>();
     public event Action<TurnManager> TauntMessage;
-    public void ManageTaunt(TurnManager turn)
+    public void ManageTaunt()
     {
         if (CheckTaunt())
         {                                               
             TauntedCharacters.Add(Current.Character);
-            TauntMessage?.Invoke(turn);
+            TauntMessage?.Invoke(this);
         }      
     }
 
@@ -296,12 +329,4 @@ public class TurnManager // Possible structs here
             party.HeroParty.PartyList ? party.HeroParty.GearInventory : party.MonsterParty.GearInventory;
 
     public bool CurrentPlayerIsComputer() => Current.PlayerType is Computer;
-
-    public Character OpponentPlayer(PartyManager party)
-    {
-        if (CurrentParty(party) == party.HeroParty.PartyList)
-            return party.MonsterParty.Player;
-        else
-            return party.HeroParty.Player;
-    }
 }
