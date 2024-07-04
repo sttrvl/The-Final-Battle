@@ -596,26 +596,25 @@ public class PartyManager
     public event Action<TurnManager, PartyManager> GearObtained;
     private void TransferDeathMonsterPartyGear(PartyManager party, TurnManager turn)
     {
+        GearObtained?.Invoke(turn, party);
         for (int index = 0; index < MonsterParty.GearInventory.Count; index++)
         {
             HeroParty.AddGear(MonsterParty.GearInventory[index]);
             MonsterParty.RemoveGear(MonsterParty.GearInventory[index]);
         }
-
-        GearObtained?.Invoke(turn, party);
     }
 
     public event Action<TurnManager, PartyManager> ItemsObtained;
     private void TransferDeathMonsterPartyItems(TurnManager turn)
     {
+        ItemsObtained?.Invoke(turn, this);
         string message = "";
+
         for (int index = 0; index < MonsterParty.ItemInventory.Count; index++)
         {
             HeroParty.AddItem(MonsterParty.ItemInventory[index]);
             MonsterParty.RemoveItem(MonsterParty.ItemInventory[index]);
         }
-            
-        ItemsObtained?.Invoke(turn, this);
     }
 
     private bool HasAdditionalRounds(TurnManager turn) => turn.Round.Battles > 0;
@@ -660,7 +659,7 @@ public class PartyManager
 
     public void ManageDeathCharacterGear(TurnManager turn)
     {
-        if (turn.CurrentTargetHasGear(turn.CurrentOpponentParty(this))) AddDeathGearToOpponentInventory(turn);
+        if (turn.CurrentTargetHasGear(turn.CurrentOpponentParty(this))) AddDeathGearToOpponentInventory(turn); // Armor
     }
 
     public event Action<TurnManager, PartyManager> SoulObtained;
@@ -679,11 +678,19 @@ public class PartyManager
             turn.Current.Character.SoulsValue += turn.CurrentOpponentParty(this)[turn.Current.Target].SoulsXP;
     }
 
-    public event Action<PartyManager, TurnManager> DeathOpponentGearObtained;
-    public void AddDeathGearToOpponentInventory(TurnManager turn)
+    public event Action<PartyManager, TurnManager, Gear?> DeathOpponentGearObtained;
+    public void AddDeathGearToOpponentInventory(TurnManager turn) // Armor check missing
     {
-        turn.Current.GearInventory.Add(turn.CurrentOpponentParty(this)[turn.Current.Target].Weapon!);
-        DeathOpponentGearObtained.Invoke(this, turn);
+        if (turn.CurrentOpponentParty(this)[turn.Current.Target].Weapon is not null)
+        {
+            turn.Current.GearInventory.Add(turn.CurrentOpponentParty(this)[turn.Current.Target].Weapon);
+            DeathOpponentGearObtained.Invoke(this, turn, turn.CurrentOpponentParty(this)[turn.Current.Target].Weapon);
+        }
+        if (turn.CurrentOpponentParty(this)[turn.Current.Target].Armor is not null)
+        {
+            turn.Current.GearInventory.Add(turn.CurrentOpponentParty(this)[turn.Current.Target].Armor);
+            DeathOpponentGearObtained.Invoke(this, turn, turn.CurrentOpponentParty(this)[turn.Current.Target].Armor);
+        }
     }
 
     public bool CheckPartyDefeat(PartyManager party, List<Character> partyList) => party.IsPartyEmpty(partyList);
