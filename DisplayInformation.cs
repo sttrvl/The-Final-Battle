@@ -3,6 +3,9 @@ using System;
 using System.IO;
 using static System.Collections.Specialized.BitVector32;
 using System.Security.Cryptography.X509Certificates;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using static DisplayInformation;
 
 public class DisplayInformation
 {
@@ -22,7 +25,7 @@ public class DisplayInformation
         party.CharacterPlagueSick       += OnDisplayCharacterPlagueSick;
         party.AttackMissed              += OnDisplayMissedAttack;
         party.GearObtained              += OnDisplayGearObtained;
-        party.DeathOpponentGearObtained += OnDisplayGearObtained; // check because It's duplicated
+        party.DeathOpponentGearObtained += OnDisplayDeathGearObtained; // check because It's duplicated
         party.ItemsObtained             += OnDisplayItemsObtained;
         party.SoulObtained              += OnDisplaySoulObtained;
         party.SoulBonus                 += OnDisplaySoulBonus;
@@ -47,7 +50,7 @@ public class DisplayInformation
         List<ColoredText> colorText = new List<ColoredText>
         {
             new ColoredText($"{turn.Current.Character}", CharacterColor(turn.Current.Character)),
-            new ColoredText($" did ", ConsoleColor.White),
+            new ColoredText($"did", ConsoleColor.White),
             new ColoredText($"{turn.Current.Attack}", CurrentAttackColor(turn)),
             new ColoredText($". Turn was skipped!", ConsoleColor.White)
         };
@@ -59,9 +62,10 @@ public class DisplayInformation
         List<ColoredText> colorText = new List<ColoredText>
         {
             new ColoredText($"{turn.Current.Consumable}", ItemColor(turn.Current.Consumable)),
-            new ColoredText($" was consumed", ConsoleColor.White),
-            new ColoredText($" by ", ConsoleColor.White),
-            new ColoredText($"{turn.Current.Character}", CharacterColor(turn.Current.Character))
+            new ColoredText($"was consumed", ConsoleColor.White),
+            new ColoredText($"by", ConsoleColor.White),
+            new ColoredText($"{turn.Current.Character}", CharacterColor(turn.Current.Character)),
+            new ColoredText($".", CharacterColor(turn.Current.Character))
         };
         LogMessages.Add(colorText);
     }
@@ -73,7 +77,7 @@ public class DisplayInformation
             List<ColoredText> colorText = new List<ColoredText>
             {
                 new ColoredText($"{turn.Current.Character}", CharacterColor(turn.Current.Character)),
-                new ColoredText($" equipped ", ConsoleColor.White),
+                new ColoredText($"equipped", ConsoleColor.White),
                 new ColoredText($"{turn.Current.Character.Armor}", GearColor(turn.Current.Character.Armor)),
                 new ColoredText($".", ConsoleColor.White)
             };
@@ -85,7 +89,7 @@ public class DisplayInformation
             List<ColoredText> colorText = new List<ColoredText>
             {
                 new ColoredText($"{turn.Current.Character}", CharacterColor(turn.Current.Character)),
-                new ColoredText($" equipped ", ConsoleColor.White),
+                new ColoredText($"equipped", ConsoleColor.White),
                 new ColoredText($"{turn.Current.Character.Weapon}", GearColor(turn.Current.Character.Weapon)),
                 new ColoredText($".", ConsoleColor.White)
             };
@@ -99,9 +103,9 @@ public class DisplayInformation
         List<ColoredText> colorText = new List<ColoredText>
         {
             new ColoredText($"{turn.Current.Character}", CharacterColor(turn.Current.Character)),
-            new ColoredText($" used ", ConsoleColor.White),
+            new ColoredText($"used", ConsoleColor.White),
             new ColoredText($"{turn.Current.Attack}", CurrentAttackColor(turn)),
-            new ColoredText($" on ", ConsoleColor.White),
+            new ColoredText($"on", ConsoleColor.White),
             new ColoredText($"{currentTarget}", CharacterColor(currentTarget)),
             new ColoredText($".", ConsoleColor.White)
         };
@@ -121,10 +125,10 @@ public class DisplayInformation
             List<ColoredText> colorText = new List<ColoredText>
             {
                 new ColoredText($"{turn.Current.Attack}", CurrentAttackColor(turn)),
-                new ColoredText($" deals ", ConsoleColor.White),
+                new ColoredText($"deals", ConsoleColor.White),
                 new ColoredText($"{turn.Current.Damage}", ConsoleColor.Red),
-                new ColoredText($" area damage to ", ConsoleColor.White),
-                new ColoredText($"ALL ", ConsoleColor.DarkCyan),
+                new ColoredText($"area damage to", ConsoleColor.White),
+                new ColoredText($"ALL", ConsoleColor.DarkCyan),
                 new ColoredText($"enemies", ConsoleColor.White),
                 new ColoredText($".", ConsoleColor.White)
             };
@@ -136,9 +140,9 @@ public class DisplayInformation
             List<ColoredText> colorText = new List<ColoredText>
             {
                 new ColoredText($"{turn.Current.Attack}", CurrentAttackColor(turn)),
-                new ColoredText($" deals ", ConsoleColor.White),
+                new ColoredText($"deals", ConsoleColor.White),
                 new ColoredText($"{turn.Current.Damage}", ConsoleColor.Red),
-                new ColoredText($" damage to ", ConsoleColor.White),
+                new ColoredText($"damage to", ConsoleColor.White),
                 new ColoredText($"{currentTarget}", CharacterColor(currentTarget)),
                 new ColoredText($".", ConsoleColor.White)
             };
@@ -153,11 +157,12 @@ public class DisplayInformation
             string opponent = turn.OpponentPartyName(party);
             List<ColoredText> colorText = new List<ColoredText>
             {
-                new ColoredText($"Everyone in ", ConsoleColor.White),
+                new ColoredText($"Everyone in", ConsoleColor.White),
                 new ColoredText($"{opponent}'s", ConsoleColor.Yellow),
-                new ColoredText($" party is now at ", ConsoleColor.White),
+                new ColoredText($"party is now at", ConsoleColor.White),
                 new ColoredText($"-{turn.Current.Damage}", ConsoleColor.Red),
-                new ColoredText($" less health.", ConsoleColor.White)
+                new ColoredText($"less health", ConsoleColor.White),
+                new ColoredText($".", ConsoleColor.White)
             };
             LogMessages.Add(colorText);
         }
@@ -168,8 +173,9 @@ public class DisplayInformation
             List<ColoredText> colorText = new List<ColoredText>
             {
                 new ColoredText($"{opponent}", CharacterColor(opponent)),
-                new ColoredText($" is now at ", ConsoleColor.White),
-                new ColoredText($"{opponent.CurrentHP}/{opponent.MaxHP} HP.", ConsoleColor.White)
+                new ColoredText($"is now at", ConsoleColor.White),
+                new ColoredText($"{opponent.CurrentHP}/{opponent.MaxHP} HP", ConsoleColor.White),
+                new ColoredText($".", ConsoleColor.White)
             };
             LogMessages.Add(colorText);
         }
@@ -184,8 +190,9 @@ public class DisplayInformation
         List<ColoredText> colorText = new List<ColoredText>
         {
             new ColoredText($"{targetModifier}", DefensiveModifierColor(targetModifier)),
-            new ColoredText($" {modifierProperty} the attack damage by ", ConsoleColor.White),
-            new ColoredText($"{Math.Abs(turn.Current.TargetDefensiveModifier.Value)} point/s.", ConsoleColor.White)
+            new ColoredText($"{modifierProperty} the attack damage by", ConsoleColor.White),
+            new ColoredText($"{Math.Abs(turn.Current.TargetDefensiveModifier.Value)} point/s", ConsoleColor.White),
+            new ColoredText($".", ConsoleColor.White)
         };
         LogMessages.Add(colorText);
     }
@@ -197,8 +204,9 @@ public class DisplayInformation
         List<ColoredText> colorText = new List<ColoredText>
         {
             new ColoredText($"{offensiveModifier}", OffensiveModifierColor(offensiveModifier)),
-            new ColoredText($" {modifierProperty}  the attack damage by ", ConsoleColor.White),
-            new ColoredText($"{Math.Abs(turn.Current.OffensiveModifier.Value)} point/s.", ConsoleColor.White)
+            new ColoredText($"{modifierProperty} the attack damage by", ConsoleColor.White),
+            new ColoredText($"{Math.Abs(turn.Current.OffensiveModifier.Value)} point/s", ConsoleColor.White),
+            new ColoredText($".", ConsoleColor.White)
         };
         LogMessages.Add(colorText);
     }
@@ -209,7 +217,8 @@ public class DisplayInformation
         List<ColoredText> colorText = new List<ColoredText>
         {
             new ColoredText($"{currentTarget}", CharacterColor(currentTarget)),
-            new ColoredText($" was poisoned!", ConsoleColor.DarkGreen)
+            new ColoredText($"was poisoned", ConsoleColor.DarkGreen),
+            new ColoredText($"!", ConsoleColor.White)
         };
         LogMessages.Add(colorText);
     }
@@ -218,10 +227,10 @@ public class DisplayInformation
     {
         List<ColoredText> colorText = new List<ColoredText>
         {
-            new ColoredText($"*Poison* ", ConsoleColor.DarkGreen),
+            new ColoredText($"*Poison*", ConsoleColor.DarkGreen),
             new ColoredText($"deals", ConsoleColor.White),
-            new ColoredText($" {poisonDamage} ", ConsoleColor.Red),
-            new ColoredText($"damage to ", ConsoleColor.White),
+            new ColoredText($"{poisonDamage}", ConsoleColor.Red),
+            new ColoredText($"damage to", ConsoleColor.White),
             new ColoredText($"{character}", CharacterColor(character)),
             new ColoredText($".", ConsoleColor.White),
         };
@@ -234,8 +243,8 @@ public class DisplayInformation
         List<ColoredText> colorText = new List<ColoredText>
         {
             new ColoredText($"{character}", CharacterColor(character)),
-            new ColoredText($" can't move ", ConsoleColor.DarkYellow),
-            new ColoredText($"they have: ", ConsoleColor.DarkYellow),
+            new ColoredText($"can't move", ConsoleColor.DarkYellow),
+            new ColoredText($"they have:", ConsoleColor.DarkYellow),
             new ColoredText($"*Plague Sickness*", ConsoleColor.DarkYellow),
             new ColoredText($".", ConsoleColor.White),
         };
@@ -249,7 +258,7 @@ public class DisplayInformation
         List<ColoredText> colorText = new List<ColoredText>
         {
             new ColoredText($"{currentTarget}", CharacterColor(currentTarget)),
-            new ColoredText($" has the rot plague, ", ConsoleColor.DarkGreen),
+            new ColoredText($"has the rot plague,", ConsoleColor.DarkGreen),
             new ColoredText($"they will be unable to have their turn", ConsoleColor.DarkGreen),
             new ColoredText($".", ConsoleColor.White)
         };
@@ -261,7 +270,8 @@ public class DisplayInformation
         List<ColoredText> colorText = new List<ColoredText>
         {
             new ColoredText($"{turn.Current.Character}", CharacterColor(turn.Current.Character)),
-            new ColoredText($" missed!", ConsoleColor.DarkRed)
+            new ColoredText($"missed", ConsoleColor.DarkRed),
+            new ColoredText($"!", ConsoleColor.DarkRed)
         };
         LogMessages.Add(colorText);
     }
@@ -271,10 +281,28 @@ public class DisplayInformation
         List<ColoredText> colorText = new List<ColoredText>
         {
             new ColoredText($"{turn.CurrentPartyName(party)}'s", PartyColor(party, turn.CurrentParty(party))),
-            new ColoredText($" obtained: ", ConsoleColor.Green)
+            new ColoredText($"obtained:", ConsoleColor.Green)
         };
         foreach (Gear gear in party.MonsterParty.GearInventory)
             colorText.Add(new ColoredText($"{gear}", GearColor(gear)));
+
+        colorText.Add(new ColoredText($".", ConsoleColor.Green));
+
+        LogMessages.Add(colorText);
+    }
+
+    public void OnDisplayDeathGearObtained(PartyManager party, TurnManager turn, Gear? gear)
+    {
+        Character target = turn.CurrentOpponentParty(party)[turn.Current.Target];
+        List<ColoredText> colorText = new List<ColoredText>()
+        {
+            new ColoredText($"{turn.CurrentPartyName(party)}'s", PartyColor(party, turn.CurrentParty(party))),
+            new ColoredText($"obtained:", ConsoleColor.Green),
+            new ColoredText($"{gear}", GearColor(gear)),
+            new ColoredText($"from", ConsoleColor.DarkRed),
+            new ColoredText($"{target}", CharacterColor(target)),
+            new ColoredText($".", ConsoleColor.White)
+        };
 
         LogMessages.Add(colorText);
     }
@@ -284,11 +312,12 @@ public class DisplayInformation
         Gear gear = turn.CurrentOpponentParty(party)[turn.Current.Target].Weapon!;
         List<ColoredText> colorText = new List<ColoredText>
         {
-            new ColoredText($" - {turn.CurrentPartyName(party)}'s", PartyColor(party, turn.CurrentParty(party))),
-            new ColoredText($" obtained: ", ConsoleColor.Green),
-            new ColoredText($"{gear.Name} ", GearColor(gear)),
-            new ColoredText($"in their inventory!", ConsoleColor.White)
-        };
+            new ColoredText($"- {turn.CurrentPartyName(party)}'s", PartyColor(party, turn.CurrentParty(party))),
+            new ColoredText($"obtained:", ConsoleColor.Green),
+            new ColoredText($"{gear.Name}", GearColor(gear)),
+            new ColoredText($"in their inventory!", ConsoleColor.White),
+            new ColoredText($".", ConsoleColor.White)
+    };
         LogMessages.Add(colorText);
     }
 
@@ -297,10 +326,12 @@ public class DisplayInformation
         List<ColoredText> colorText = new List<ColoredText>
         {
             new ColoredText($"{turn.CurrentPartyName(party)}'s", PartyColor(party, turn.CurrentParty(party))),
-            new ColoredText($" obtained: ", ConsoleColor.Green)
+            new ColoredText($"obtained:", ConsoleColor.Green)
         };
         foreach (Consumables item in party.MonsterParty.ItemInventory)
-            colorText.Add(new ColoredText($"{item} ", ItemColor(item)));
+            colorText.Add(new ColoredText($"{item}", ItemColor(item)));
+
+        colorText.Add(new ColoredText($".", ConsoleColor.White));
 
         LogMessages.Add(colorText);
     }
@@ -310,10 +341,10 @@ public class DisplayInformation
         List<ColoredText> colorText = new List<ColoredText>
         {
             new ColoredText($"{turn.Current.Character}", PartyColor(party, turn.CurrentParty(party))),
-            new ColoredText($" obtained ", PartyColor(party, turn.CurrentParty(party))),
+            new ColoredText($"obtained", PartyColor(party, turn.CurrentParty(party))),
             new ColoredText($"{turn.CurrentOpponentParty(party)[turn.Current.Target].SoulsXP} ", ConsoleColor.Cyan),
-            new ColoredText($"souls, ", ConsoleColor.White),
-            new ColoredText($"their ability ", ConsoleColor.White),
+            new ColoredText($"souls,", ConsoleColor.White),
+            new ColoredText($"their ability", ConsoleColor.White),
             new ColoredText($"gauge was filled", ConsoleColor.White),
             new ColoredText($".", ConsoleColor.White)
         };
@@ -326,11 +357,12 @@ public class DisplayInformation
         {
             new ColoredText($"{turn.Current.Character}", CharacterColor(turn.Current.Character)),
             new ColoredText($"felt an uncanny", ConsoleColor.White),
-            new ColoredText($"energy ", ConsoleColor.Cyan),
+            new ColoredText($"energy", ConsoleColor.Cyan),
             new ColoredText($"arise within them,", ConsoleColor.White),
             new ColoredText($"they have been", ConsoleColor.White),
-            new ColoredText($" granted ", ConsoleColor.Cyan),
-            new ColoredText($"+1 damage!", ConsoleColor.Cyan)
+            new ColoredText($" granted", ConsoleColor.Cyan),
+            new ColoredText($"+1 damage", ConsoleColor.Cyan),
+            new ColoredText($"!", ConsoleColor.Cyan)
         };
         LogMessages.Add(colorText);
     }
@@ -342,25 +374,26 @@ public class DisplayInformation
         if (turn.CurrentOpponentParty(party) == party.HeroParty.PartyList)
         {
             colorText.Add(new ColoredText($"{turn.CurrentPartyName(party)}'s", PartyColor(party, turn.CurrentParty(party))));
-            colorText.Add(new ColoredText($" won!, ", ConsoleColor.Cyan));
-            colorText.Add(new ColoredText($"{opponentName}'s ", PartyColor(party, turn.CurrentOpponentParty(party))));
-            colorText.Add(new ColoredText($"lost. ", ConsoleColor.Cyan));
-            colorText.Add(new ColoredText($"Uncoded One’s forces have prevailed.", ConsoleColor.Cyan));
+            colorText.Add(new ColoredText($"won!,", ConsoleColor.Cyan));
+            colorText.Add(new ColoredText($"{opponentName}'s", PartyColor(party, turn.CurrentOpponentParty(party))));
+            colorText.Add(new ColoredText($"lost.", ConsoleColor.Cyan));
+            colorText.Add(new ColoredText($"Uncoded One’s forces have prevailed", ConsoleColor.Cyan));
         }
         else if (turn.CurrentOpponentParty(party) == party.MonsterParty.PartyList && turn.Round.Battles<= 0)
         {
             colorText.Add(new ColoredText($"{turn.CurrentPartyName(party)}", PartyColor(party, turn.CurrentParty(party))));
-            colorText.Add(new ColoredText($"'s won!, ", ConsoleColor.Cyan));
+            colorText.Add(new ColoredText($"'s won!,", ConsoleColor.Cyan));
             colorText.Add(new ColoredText($"{opponentName}'s", ConsoleColor.Red));
-            colorText.Add(new ColoredText($" lost. ", ConsoleColor.Cyan));
-            colorText.Add(new ColoredText($"The Uncoded One was defeated.", ConsoleColor.Cyan));
+            colorText.Add(new ColoredText($"lost.", ConsoleColor.Cyan));
+            colorText.Add(new ColoredText($"The Uncoded One was defeated", ConsoleColor.Cyan));
         }
         else
         {
             colorText.Add(new ColoredText($"{opponentName}'s", PartyColor(party, turn.CurrentOpponentParty(party))));
-            colorText.Add(new ColoredText($" have been defeated. ", ConsoleColor.Cyan));
-            colorText.Add(new ColoredText($"Next battle starting.", ConsoleColor.Cyan));
+            colorText.Add(new ColoredText($"have been defeated", ConsoleColor.Cyan));
+            colorText.Add(new ColoredText($"Next battle starting", ConsoleColor.Cyan));
         }
+        colorText.Add(new ColoredText($".", ConsoleColor.White));
 
         LogMessages.Add(colorText);
     }
@@ -370,8 +403,9 @@ public class DisplayInformation
         List<ColoredText> colorText = new List<ColoredText>
         {
             new ColoredText($"{character}", CharacterColor(character)),
-            new ColoredText($" has ", ConsoleColor.White),
-            new ColoredText($"died", ConsoleColor.Red)
+            new ColoredText($"has", ConsoleColor.White),
+            new ColoredText($"died", ConsoleColor.Red),
+            new ColoredText($".", ConsoleColor.White)
         };
         LogMessages.Add(colorText);
     }
@@ -431,9 +465,10 @@ public class DisplayInformation
                 if (TextOverflowing(textSegment.Text.Length, column, 117)) 
                     (column, row) = WrapLines(columnStartValue, row);
 
+                int spacing = index2 < (lines[index].Count - 2) ? 1 : 0;
                 Console.SetCursorPosition(column, row);
-                WriteTextSegment(textSegment);
-                column += textSegment.Text.Length;
+                WriteTextSegment(textSegment, spacing);
+                column = UpdateValueWith(column, textSegment.Text.Length + spacing);
             }
             (column, row) = WrapLines(columnStartValue, row);
             MaxLinesDrawn(lines, 25);
@@ -441,10 +476,13 @@ public class DisplayInformation
         Console.ResetColor();
     }
 
-    private void WriteTextSegment(ColoredText segment)
+    private void WriteTextSegment(ColoredText segment, int spacing)
     {
         Console.ForegroundColor = segment.Color;
         Console.Write(segment.Text);
+
+        if (spacing == 1)
+            Console.Write(" ");
     }
 
     private void MaxLinesDrawn(List<List<ColoredText>> lines, int value)
@@ -734,17 +772,26 @@ public class DisplayInformation
 
     public void OptionDisplayPosition() => Console.SetCursorPosition(1, 23);
 
+    public delegate bool ActionCondition(AttackActions action, TurnManager turn);
     public void DisplayActionList(PartyManager party, TurnManager turn)
     {
         ClearMenu();
         int count = 0;
         OptionDisplayPosition();
+
+        count = DisplayActionAvailable(party.ActionAvailable, turn, count);
+        count =  DisplayActionAvailable(party.ActionGearAvailable, turn, count);
+    }
+
+    private int DisplayActionAvailable(ActionCondition condition, TurnManager turn, int count)
+    {
         foreach (AttackActions action in Enum.GetValues(typeof(AttackActions)))
         {
-            if (party.ActionAvailable(action, turn))     count = DisplayActionCount(count, action, turn);
-            if (party.ActionGearAvailable(action, turn)) count = DisplayActionCount(count, action, turn);
-            Console.SetCursorPosition(1, Console.CursorTop); // reuse
+            if (condition(action, turn)) count = DisplayActionCount(count, action, turn);
+            Console.SetCursorPosition(1, Console.CursorTop);
         }
+
+        return count;
     }
 
     public int DisplayActionCount(int count, AttackActions action, TurnManager turn)
@@ -753,7 +800,7 @@ public class DisplayInformation
         return count += 1;
     }
 
-    public void ClearMenu() // can be made more generalized, but this is also easier to manage
+    public void ClearMenu() // can be made more generalized, but this is also easier to manage (for now)
     {
         for (int index = 22; index < 28; index++)
         {
@@ -771,7 +818,7 @@ public class DisplayInformation
     public void DisplayCurrentGearInventory(List<Gear> currentGearInventory, DisplayInformation info)
     {
         ClearMenu();
-        // currentGearInventory.Count > 0 is equivalent to .Any
+        // Count > 0 is equivalent to .Any
         if (currentGearInventory.Any()) DisplayGearInInventory(currentGearInventory);
         else
         {
@@ -797,12 +844,12 @@ public class DisplayInformation
         OptionDisplayPosition();
         foreach (Gear? gear in currentGearInventory)
         {
-            if (gear is not null) // DEBUG, returns null sometimes
+            if (gear is not null) // returns null sometimes
             {
                 string message = $"*{gear.Name} ({count}) "; 
                 if (TextOverflowing(message.Length, column, 60)) (column, row) = WrapLines(1, row);
                 WriteStringInPosition(column, row, message);
-                column = UpdateValueWith(column, message.Length); // this is repeated 
+                column = UpdateValueWith(column, message.Length); 
                 count++;
             }
         }
