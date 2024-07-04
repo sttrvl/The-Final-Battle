@@ -1,34 +1,76 @@
-﻿public class TurnManager // Possible structs here
+﻿using System.Diagnostics.Metrics;
+
+public class TurnManager // Possible structs here
 {
-    public int Round { get; private set; } = 0;  // could go with round counter
-    public int RoundCounter { get; private set; }
-    public int NumberBattleRounds { get; private set; } = 0;
-    private int CharacterNumber { get; set; } = 0;
-    public Character SelectedPlayerType { get; set; }  // could go with the character list
-    public Character SelectedCharacter { get; set; }
-    public List<Character> CurrentCharacterList { get; set; } = new List<Character>();
 
-    public List<Consumables> CurrentItemList { get; set; } = new List<Consumables>();
-
-    public int CurrentTarget { get; set; }
-    public AttackAction CurrentAttack { get; set; }
-    public int CurrentDamage { get; set; }
-    public void ClampDamage() // maybe elsewhere
+    public RoundInfo Round = new RoundInfo();
+    public class RoundInfo
     {
-        if (CurrentDamage < 0) CurrentDamage = 0;
-    }
-    public double CurrentProbability { get; set; }
-    public int SelectedGear { get; set; }
-    public Consumables ConsumableSelected { get; set; }
-    public int ConsumableSelectedNumber { get; set; }
-    public int CurrentHealValue;
+        public int CurrentRound { get; private set; }
+        public int Counter { get; private set; }
+        public int Battles { get; private set; }
 
-    public List<Gear?> CurrentGearInventory = new List<Gear?>();
-    public DefensiveAttackModifier CurrentTargetDefensiveModifier { get; set; }
-    public OffensiveAttackModifier CurrentOffensiveModifier { get; set; }
+        public void AddRound() => CurrentRound++;
+        public void RemoveRound() => CurrentRound--;
+        public void AddCount() => Counter++;
+        public void AddBattle() => Battles++;
+    }
+
+    public CharacterInfo Current = new CharacterInfo();
+    public class CharacterInfo
+    {
+        public int CharacterNumber { get; set; } = 0; // d
+        public Character PlayerType { get; set; } // d
+        public Character Character { get; set; } // d
+
+        public List<Character> CharacterList { get; set; } = new List<Character>(); // d
+
+        public List<Consumables> ItemList { get; set; } = new List<Consumables>(); // d
+
+        public int Target { get; private set; } // d
+        public AttackAction Attack { get; private set; } // d
+        public int Damage { get; private set; } // d
+
+        public double Probability { get; set; }
+        public int Gear { get; set; }
+        public Consumables Consumable { get; set; }
+        public int ConsumableNumber { get; set; }
+        public int HealValue;
+
+        public List<Gear?> GearInventory = new List<Gear?>();
+        public DefensiveAttackModifier TargetDefensiveModifier { get; set; }
+        public OffensiveAttackModifier OffensiveModifier { get; set; }
+
+        public void RemoveCharacter(Character character) => CharacterList.Remove(character);
+
+        public void AddGear(Gear? gear) => GearInventory.Add(gear);
+        public void RemoveGear(Gear? gear) => GearInventory.Remove(gear);
+
+        public void IncreaseCharacterNumber() => CharacterNumber++;
+        public void ResetCharacterNumber() => CharacterNumber = 0;
+
+        public void SetTarget(int target) => Target = target;
+        public void SetAttack(AttackAction attack) => Attack = attack;
+        public void SetDamage(int damage) => Damage = damage;
+        public void IncreaseDamage(int increase) => Damage += increase;
+        public void SetProbability(double probability) => Probability = probability;
+        public void SetGear(int gear) => Gear = gear;
+        public void SetConsumable(Consumables consumable) => Consumable = consumable;
+        public void SetConsumableNumber(int consumableNumber) => ConsumableNumber = consumableNumber;
+        public void SetHealValue(int healValue) => HealValue = healValue;
+
+        public void SetTargetDefensiveModifier(DefensiveAttackModifier modifier) => TargetDefensiveModifier = modifier;
+        public void SetOffensiveModifier(OffensiveAttackModifier modifier) => OffensiveModifier = modifier;
+    }
+
+    public void ClampCurrentDamage()
+    {
+        if (Current.Damage < 0) Current.SetDamage(0);
+    }
+
     public List<PoisonedCharacterInfo> CurrentPoisonedCharacters { get; set; } = new List<PoisonedCharacterInfo>();
     public List<SickPlaguedCharacterInfo> CurrentSickPlagueCharacters { get; set; } = new List<SickPlaguedCharacterInfo>();
-    public struct PoisonedCharacterInfo //maybe elsewhere
+    public struct PoisonedCharacterInfo // maybe should live in party
     {
         public Character Character { get; set; }
         public List<Character> CharacterParty { get; set; }
@@ -44,7 +86,7 @@
         }
     };
 
-    public struct SickPlaguedCharacterInfo // maybe elsewhere
+    public struct SickPlaguedCharacterInfo // maybe should live in party
     {
         public Character Character { get; set; }
         public List<Character> CharacterParty { get; set; }
@@ -68,7 +110,7 @@
 
     public event Action<TurnManager> TurnSkipped;
 
-    public void SelectStartingPlayer(Character character, TurnManager turn) => turn.SelectedPlayerType = character;
+    public void SelectStartingPlayer(Character character) => Current.PlayerType = character;
 
     public int CurrentMenu(int? choice, PartyManager party, TurnManager turn, DisplayInformation info)
     {
@@ -82,11 +124,11 @@
                 break;
             case 3:
                 turn.GetCurrentItemInventory(party);
-                info.DisplayCurrentGearInventory(turn.CurrentGearInventory, info);
+                info.DisplayCurrentGearInventory(Current.GearInventory, info);
                 break;
             case 0:
             default:
-                turn.CurrentAttack = new Nothing();
+                Current.SetAttack(new Nothing());
                 TurnSkipped?.Invoke(turn);
                 break;
         };
@@ -99,6 +141,18 @@
         ManagePlagueSick(turn, party);
     }
 
+    public void ManagePoisoned(TurnManager turn, PartyManager party)
+    {
+        party.RemoveInvalidPoisonedCharacter(turn);
+        if (party.CheckForPoisonedCharacter(turn)) party.PoisonCharacter(turn);
+    }
+
+    public void ManagePlagueSick(TurnManager turn, PartyManager party)
+    {
+        party.RemoveInvalidPlagueSickCharacter(turn);
+        if (party.CheckForPlagueSickCharacter(turn)) party.PlagueSickCharacter(turn);
+    }
+
     public void ManagePartyTurns(PartyManager party)
     {
         if (CurrentParty(party) == party.HeroParty.PartyList)
@@ -106,77 +160,74 @@
         else
             party.MonsterParty.AddTurns();
     }
-    
-    public void ManagePoisoned(TurnManager turn, PartyManager party)
+
+    public void UpdateCharacterNumber()
     {
-        party.RemoveInvalidSickCharacter(turn);
-        if (party.CheckForPoisonedCharacter(turn)) party.PoisonCharacter(turn);
+        if (Current.CharacterNumber < Current.CharacterList.Count)
+            Current.IncreaseCharacterNumber();
+        else
+            Current.ResetCharacterNumber();
     }
 
-    public void ManagePlagueSick(TurnManager turn, PartyManager party)
-    {
-        party.RemoveInvalidPlagueCharacter(turn);
-        if (party.CheckForPlagueSickCharacter(turn)) party.PlagueSickCharacter(turn);
-    }
 
-    public void UpdateCharacterNumber() =>
-        CharacterNumber = CharacterNumber < CurrentCharacterList.Count ? CharacterNumber + CharacterNumber++ : 0;
+    public void NextBattle() => Round.AddBattle();
 
-    public void NextBattle() => NumberBattleRounds++;
     public void CheckForNextRound(TurnManager turn, PartyManager party)
     {
         if (party.HeroParty.TurnsPlayed == party.MonsterParty.TurnsPlayed)
         {
             ManageTurnEnd(turn, party);
-            Round++;
+            Round.AddRound();
         }
     }
 
-    public void AdvanceToNextParty() => RoundCounter++;
-    public void AdditionalBattleRoundUsed() => NumberBattleRounds--;
+    public void AdvanceToNextParty() => Round.AddCount();
 
-    public void CurrentSelectedCharacter(PartyManager party)
+    public void AdditionalBattleRoundUsed() => Round.RemoveRound();
+
+    public void CurrentSelectedCharacter()
     {
-        CharacterNumber = CharacterNumber < CurrentCharacterList.Count ? CharacterNumber : 0;
-        SelectedCharacter = CurrentCharacterList[CharacterNumber];
+        if (Current.CharacterNumber >= Current.CharacterList.Count) Current.ResetCharacterNumber();
+
+        Current.Character = Current.CharacterList[Current.CharacterNumber];
     }
 
     public List<Consumables> GetCurrentItemInventory(PartyManager party)
     {
-        return CurrentItemList = 
-            CurrentCharacterList == party.HeroParty.PartyList ? party.HeroParty.ItemInventory : party.MonsterParty.ItemInventory;
+        return Current.ItemList =
+            Current.CharacterList == party.HeroParty.PartyList ? party.HeroParty.ItemInventory : party.MonsterParty.ItemInventory;
     }
 
     public List<Character> CurrentOpponentParty(PartyManager party) =>
-        CurrentCharacterList == party.HeroParty.PartyList ? party.MonsterParty.PartyList : party.HeroParty.PartyList;
+        Current.CharacterList == party.HeroParty.PartyList ? party.MonsterParty.PartyList : party.HeroParty.PartyList;
 
-    public string CurrentPartyName(PartyManager party) => CurrentCharacterList == party.HeroParty.PartyList ? "Hero" : "Monster";
+    public string CurrentPartyName(PartyManager party) => Current.CharacterList == party.HeroParty.PartyList ? "Hero" : "Monster";
     public string OpponentPartyName(PartyManager party) => CurrentPartyName(party) == "Hero" ? "Monster" : "Hero";
 
     public bool TargetHasDefensiveModifier(PartyManager party) =>
-        CurrentOpponentParty(party)[CurrentTarget].DefensiveAttackModifier != null;
+        CurrentOpponentParty(party)[Current.Target].DefensiveAttackModifier != null;
 
-    public bool TargetHasOffensiveModifier(TurnManager turn) => turn.SelectedCharacter?.Armor?.OffensiveAttackModifier  != null ||turn.SelectedCharacter?.Weapon?.OffensiveAttackModifier != null;
+    public bool TargetHasOffensiveModifier() => Current.Character?.Armor?.OffensiveAttackModifier  != null ||                                                Current.Character?.Weapon?.OffensiveAttackModifier != null;
 
-    public bool AttackHasSideEffect() => CurrentAttack.AttackSideEffect != null;
+    public bool AttackHasSideEffect() => Current.Attack.AttackSideEffect != null;
 
-    public bool AttackHasTemporaryEffect() => CurrentAttack.AttackTemporaryEffect != null;
+    public bool AttackHasTemporaryEffect() => Current.Attack.AttackTemporaryEffect != null;
 
     public void CurrentPartyTurnData(PartyManager party)
     {
-        CurrentCharacterList = CurrentParty(party);
-        SelectedPlayerType = CurrentPlayerType(party);
+        Current.CharacterList = CurrentParty(party);
+        Current.PlayerType = CurrentPlayerType(party);
     }
 
     public List<Character> CurrentParty(PartyManager party) => 
-        RoundCounter % 2 == 0 ? party.HeroParty.PartyList : party.MonsterParty.PartyList;
+        Round.Counter % 2 == 0 ? party.HeroParty.PartyList : party.MonsterParty.PartyList;
 
-    public Character CurrentPlayerType(PartyManager party) => RoundCounter % 2 == 0 ? party.HeroParty.Player : party.MonsterParty.Player;
+    public Character CurrentPlayerType(PartyManager party) => Round.Counter % 2 == 0 ? party.HeroParty.Player : party.MonsterParty.Player;
 
     public void CurrentPartyTurnSetUp(PartyManager party)
     {
         CurrentPartyTurnData(party);
-        CurrentSelectedCharacter(party);
+        CurrentSelectedCharacter();
         UpdateCurrentGearInventory(party);
     }
 
@@ -184,9 +235,9 @@
     public event Action<PartyManager> PartyTurnEnd;
     public void RunCurrentParty(TurnManager turn, DisplayInformation info, PartyManager party)
     {
-        for (int index = 0; index < CurrentCharacterList.Count; index++)
+        for (int index = 0; index < Current.CharacterList.Count; index++)
         {
-            SelectedCharacter = CurrentCharacterList[index]; // might have a method for this
+            Current.Character = Current.CharacterList[index];
             info.UpdateTurnDisplay(party, turn);
             new InputManager().UserManager(turn, party, info);
             
@@ -201,7 +252,7 @@
 
     private void CheckComputerDelay(TurnManager turn)
     {
-        if (turn.SelectedPlayerType is Computer) Thread.Sleep(500);
+        if (Current.PlayerType is Computer) Thread.Sleep(500);
     }
 
     public List<Character> TauntedCharacters = new List<Character>();
@@ -210,14 +261,14 @@
     {
         if (CheckTaunt())
         {                                               
-            TauntedCharacters.Add(SelectedCharacter);
+            TauntedCharacters.Add(Current.Character);
             TauntMessage?.Invoke(turn);
         }      
     }
 
-    public bool CheckTaunt() => !TauntedCharacters.Contains(SelectedCharacter);
+    public bool CheckTaunt() => !TauntedCharacters.Contains(Current.Character);
 
-    public bool CurrentTargetHasGear(List<Character> opponentParty) => opponentParty[CurrentTarget].Weapon is not null;
+    public bool CurrentTargetHasGear(List<Character> opponentParty) => opponentParty[Current.Target].Weapon is not null;
 
     public void CheckSelectedCharacterGear(PartyManager party)
     {
@@ -227,27 +278,27 @@
 
     public void TransferSelectedCharacterWeapon(PartyManager party)
     {
-        if (CurrentGearInventory == party.HeroParty.GearInventory)
-            party.HeroParty.AddGear(SelectedCharacter.Weapon!);
+        if (Current.GearInventory == party.HeroParty.GearInventory)
+            party.HeroParty.AddGear(Current.Character.Weapon!);
         else
-            party.MonsterParty.AddGear(SelectedCharacter.Weapon!);
+            party.MonsterParty.AddGear(Current.Character.Weapon!);
     }
 
     public void TransferSelectedCharacterArmor(PartyManager party)
     {
-        if (CurrentGearInventory == party.HeroParty.GearInventory)
-            party.HeroParty.AddGear(SelectedCharacter.Armor!);
+        if (Current.GearInventory == party.HeroParty.GearInventory)
+            party.HeroParty.AddGear(Current.Character.Armor!);
         else
-            party.MonsterParty.AddGear(SelectedCharacter.Armor!);
+            party.MonsterParty.AddGear(Current.Character.Armor!);
     }
 
-    public bool SelectedCharacterHasEquippedWeapon() => SelectedCharacter.Weapon is not null;
-    public bool SelectedCharacterHasEquippedArmor() => SelectedCharacter.Armor is not null;
+    public bool SelectedCharacterHasEquippedWeapon() => Current.Character.Weapon is not null;
+    public bool SelectedCharacterHasEquippedArmor() => Current.Character.Armor is not null;
 
-    public void UpdateCurrentGearInventory(PartyManager party) => CurrentGearInventory = CurrentCharacterList == 
+    public void UpdateCurrentGearInventory(PartyManager party) => Current.GearInventory = Current.CharacterList == 
             party.HeroParty.PartyList ? party.HeroParty.GearInventory : party.MonsterParty.GearInventory;
 
-    public bool CurrentPlayerIsComputer() => SelectedPlayerType is Computer;
+    public bool CurrentPlayerIsComputer() => Current.PlayerType is Computer;
 
     public Character OpponentPlayer(PartyManager party)
     {
