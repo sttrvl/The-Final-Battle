@@ -1,15 +1,19 @@
-﻿using System.Data.Common;
-using System;
-using System.IO;
-using static System.Collections.Specialized.BitVector32;
-using System.Security.Cryptography.X509Certificates;
-using System.Reflection;
-using System.Runtime.CompilerServices;
-using static DisplayInformation;
+﻿using TheFinalBattle.GameObjects;
+using TheFinalBattle.Characters;
+using TheFinalBattle.InputManagement;
+using TheFinalBattle.PartyManagement;
+using TheFinalBattle.TurnSystem;
+using TheFinalBattle.GameObjects.Gear;
+using TheFinalBattle.GameObjects.MenuActions;
+using TheFinalBattle.GameObjects.Items;
+using TheFinalBattle.GameObjects.AttackModifiers;
+using TheFinalBattle.GameObjects.Attacks;
+
+namespace TheFinalBattle.InformationDisplay;
 
 public class DisplayInformation
 {
-    public DisplayInformation(PartyManager party, TurnManager turn)
+    public DisplayInformation(TurnManager turn, PartyManager party)
     {
         turn.TauntMessage               += OnDisplayTaunt;
         turn.TurnSkipped                += OnDisplayTurnSkipped;
@@ -25,7 +29,7 @@ public class DisplayInformation
         party.CharacterPlagueSick       += OnDisplayCharacterPlagueSick;
         party.AttackMissed              += OnDisplayMissedAttack;
         party.GearObtained              += OnDisplayGearObtained;
-        party.DeathOpponentGearObtained += OnDisplayDeathGearObtained; // check because It's duplicated
+        party.DeathOpponentGearObtained += OnDisplayDeathGearObtained;
         party.ItemsObtained             += OnDisplayItemsObtained;
         party.SoulObtained              += OnDisplaySoulObtained;
         party.SoulBonus                 += OnDisplaySoulBonus;
@@ -97,7 +101,7 @@ public class DisplayInformation
         }
     } // reuse potential
 
-    public void OnDisplayActionInfo(PartyManager party, TurnManager turn)
+    public void OnDisplayActionInfo(TurnManager turn, PartyManager party)
     {
         Character currentTarget = turn.CurrentOpponentParty(party)[turn.Current.Target];
         List<ColoredText> colorText = new List<ColoredText>
@@ -112,13 +116,13 @@ public class DisplayInformation
         LogMessages.Add(colorText);
     }
 
-    public void OnDisplayDamageAndRemainingHealth(PartyManager party, TurnManager turn)
+    public void OnDisplayDamageAndRemainingHealth(TurnManager turn, PartyManager party)
     {
-        DisplayDamageDealt(turn, party);
+        DisplayDamageDealt(party, turn);
         DisplayTargetCurrentHP(turn, party);
     }
 
-    public void DisplayDamageDealt(TurnManager turn, PartyManager party)
+    public void DisplayDamageDealt(PartyManager party, TurnManager turn)
     {
         if (turn.Current.Attack is AreaAttack)
         {
@@ -181,7 +185,7 @@ public class DisplayInformation
         }
     }
 
-    public void OnDisplayDefensiveModifierEffects(PartyManager party, TurnManager turn)
+    public void OnDisplayDefensiveModifierEffects(TurnManager turn, PartyManager party)
     {
         string modifierProperty = turn.Current.TargetDefensiveModifier.Value < 0 ? "reduced" : "increased";
 
@@ -197,7 +201,7 @@ public class DisplayInformation
         LogMessages.Add(colorText);
     }
 
-    public void OnDisplayOffensiveModifierEffects(PartyManager party, TurnManager turn)
+    public void OnDisplayOffensiveModifierEffects(TurnManager turn, PartyManager party)
     {
         string modifierProperty = turn.Current.OffensiveModifier.Value < 0 ? "reduced" : "increased";
         OffensiveAttackModifier offensiveModifier = turn.Current.OffensiveModifier;
@@ -286,12 +290,12 @@ public class DisplayInformation
         foreach (Gear gear in party.MonsterParty.GearInventory)
             colorText.Add(new ColoredText($"{gear}", GearColor(gear)));
 
-        colorText.Add(new ColoredText($".", ConsoleColor.Green));
+        colorText.Add(DotOrNothing(colorText));
 
         LogMessages.Add(colorText);
     }
 
-    public void OnDisplayDeathGearObtained(PartyManager party, TurnManager turn, Gear? gear)
+    public void OnDisplayDeathGearObtained(Gear? gear, TurnManager turn, PartyManager party)
     {
         Character target = turn.CurrentOpponentParty(party)[turn.Current.Target];
         List<ColoredText> colorText = new List<ColoredText>()
@@ -307,20 +311,6 @@ public class DisplayInformation
         LogMessages.Add(colorText);
     }
 
-    public void OnDisplayGearObtained(PartyManager party, TurnManager turn)
-    {
-        Gear gear = turn.CurrentOpponentParty(party)[turn.Current.Target].Weapon!;
-        List<ColoredText> colorText = new List<ColoredText>
-        {
-            new ColoredText($"- {turn.CurrentPartyName(party)}'s", PartyColor(party, turn.CurrentParty(party))),
-            new ColoredText($"obtained:", ConsoleColor.Green),
-            new ColoredText($"{gear.Name}", GearColor(gear)),
-            new ColoredText($"in their inventory!", ConsoleColor.White),
-            new ColoredText($".", ConsoleColor.White)
-    };
-        LogMessages.Add(colorText);
-    }
-
     public void OnDisplayItemsObtained(TurnManager turn, PartyManager party)
     {
         List<ColoredText> colorText = new List<ColoredText>
@@ -331,9 +321,16 @@ public class DisplayInformation
         foreach (Consumables item in party.MonsterParty.ItemInventory)
             colorText.Add(new ColoredText($"{item}", ItemColor(item)));
 
-        colorText.Add(new ColoredText($".", ConsoleColor.White));
+        colorText.Add(DotOrNothing(colorText));
 
         LogMessages.Add(colorText);
+    }
+
+    private ColoredText DotOrNothing(List<ColoredText> listCount)
+    {
+        if (listCount.Count > 2) return new ColoredText($".", ConsoleColor.White);
+
+        return new ColoredText($" Nothing.", ConsoleColor.Gray);
     }
 
     public void OnDisplaySoulObtained(TurnManager turn, PartyManager party)
@@ -342,7 +339,7 @@ public class DisplayInformation
         {
             new ColoredText($"{turn.Current.Character}", PartyColor(party, turn.CurrentParty(party))),
             new ColoredText($"obtained", PartyColor(party, turn.CurrentParty(party))),
-            new ColoredText($"{turn.CurrentOpponentParty(party)[turn.Current.Target].SoulsXP} ", ConsoleColor.Cyan),
+            new ColoredText($"{turn.CurrentOpponentParty(party)[turn.Current.Target].SoulsXP}", ConsoleColor.Cyan),
             new ColoredText($"souls,", ConsoleColor.White),
             new ColoredText($"their ability", ConsoleColor.White),
             new ColoredText($"gauge was filled", ConsoleColor.White),
@@ -367,7 +364,7 @@ public class DisplayInformation
         LogMessages.Add(colorText);
     }
 
-    public void OnDisplayBattleEnd(PartyManager party, TurnManager turn)
+    public void OnDisplayBattleEnd(TurnManager turn, PartyManager party)
     {
         string opponentName = turn.OpponentPartyName(party);
         List<ColoredText> colorText = new List<ColoredText>();
@@ -410,24 +407,21 @@ public class DisplayInformation
         LogMessages.Add(colorText);
     }
 
-    //-----
-    // maybe this should go in input
-
-    public void DisplayGameStatus(PartyManager party, TurnManager turn)
+    public void DisplayGameStatus(TurnManager turn, PartyManager party)
     {
-        DrawPartiesStatus(party, turn);
+        DrawPartiesStatus(turn, party);
         DrawSeparators();
         DrawBorder();
         DisplayLogMessages();
     }
 
-    private void DrawPartiesStatus(PartyManager party, TurnManager turn)
+    private void DrawPartiesStatus(TurnManager turn, PartyManager party)
     {
         Console.SetCursorPosition(0, 1);
-        DisplayPartyInfo(party.HeroParty.PartyList, party, turn);
+        DisplayPartyInfo(party.HeroParty.PartyList, turn, party);
 
         Console.SetCursorPosition(0, 11);
-        DisplayPartyInfo(party.MonsterParty.PartyList, party, turn);
+        DisplayPartyInfo(party.MonsterParty.PartyList, turn, party);
     }
 
     private void DrawSeparators()
@@ -462,10 +456,9 @@ public class DisplayInformation
             for (int index2 = 0; index2 < lines[index].Count; index2++)
             {
                 ColoredText textSegment = lines[index][index2];
-                if (TextOverflowing(textSegment.Text.Length, column, 117)) 
-                    (column, row) = WrapLines(columnStartValue, row);
+                if (TextOverflowing(textSegment.Text.Length, column, 117)) (column, row) = WrapLines(columnStartValue, row);
 
-                int spacing = index2 < (lines[index].Count - 2) ? 1 : 0;
+                int spacing = GetSpacing(index2, lines[index].Count - 2); 
                 Console.SetCursorPosition(column, row);
                 WriteTextSegment(textSegment, spacing);
                 column = UpdateValueWith(column, textSegment.Text.Length + spacing);
@@ -475,6 +468,8 @@ public class DisplayInformation
         }
         Console.ResetColor();
     }
+
+    private int GetSpacing(int index, int segmentsCount) => index < segmentsCount ? 1 : 0;
 
     private void WriteTextSegment(ColoredText segment, int spacing)
     {
@@ -529,16 +524,16 @@ public class DisplayInformation
         Console.SetCursorPosition(0, 0);
     }
 
-    public void UpdateTurnDisplay(PartyManager party, TurnManager turn)
+    public void UpdateTurnDisplay(TurnManager turn, PartyManager party)
     {
         Console.Clear();
-        DisplayGameStatus(party, turn);
+        DisplayGameStatus(turn, party);
         DisplayTurnInfo(turn.Current.Character);
-        turn.ManageTaunt(turn);
+        turn.ManageTaunt();
         DisplayOptionsMenu();
     }
 
-    private void DisplayPartyInfo(List<Character> characters, PartyManager party, TurnManager turn)
+    private void DisplayPartyInfo(List<Character> characters, TurnManager turn, PartyManager party)
     {
         foreach (Character character in characters)
             DisplayCharacter(character, turn, party);
@@ -555,7 +550,7 @@ public class DisplayInformation
         string characterCurrentString = DrawCharacter(character, turn);
         DrawPadding(characterCurrentString);
         DrawSeparator(":");
-        DrawHealthBar(character, turn, party);
+        DrawHealthBar(character);
         DrawSoulBar(character, turn, party);
 
         Console.WriteLine();
@@ -570,20 +565,20 @@ public class DisplayInformation
         return characterString;
     }
 
-    private void DrawPadding(string characterString) =>Console.Write($"{CalculateSecondPadding(characterString)}");
+    private void DrawPadding(string characterString) => Console.Write($"{CalculateSecondPadding(characterString)}");
 
     private void DrawSeparator(string separator) => Console.Write($"{separator}");
 
-    private void DrawHealthBar(Character character, TurnManager turn, PartyManager party)
+    private void DrawHealthBar(Character character)
     {
-        string healthBar = DisplayCurrentHealthBar(character, turn, party);
+        string healthBar = DisplayCurrentHealthBar(character);
         Console.Write($" {healthBar}");
         Console.ResetColor();
     }
 
     private void DrawSoulBar(Character character, TurnManager turn, PartyManager party)
     {
-        string soulsBar = DisplayCurrentSoulBar(character, turn, party);
+        string soulsBar = DisplayCurrentSoulBar(character);
         Console.Write($" {soulsBar}");
         Console.ResetColor();
     }
@@ -596,7 +591,7 @@ public class DisplayInformation
         Console.WriteLine($"                Armor   : {armor}");
     }
 
-    private string DisplayCurrentSoulBar(Character character, TurnManager turn, PartyManager party)
+    private string DisplayCurrentSoulBar(Character character)
     {
         Console.ForegroundColor = ConsoleColor.Cyan;
         string soulBar = "";
@@ -647,21 +642,21 @@ public class DisplayInformation
 
     private string DisplayCurrentGear(Character character)
     {
-        if (character.Weapon != null) return $"{character.Weapon.Name}";
+        if (character.Weapon is not null) return $"{character.Weapon.Name}";
 
         return $"     ";
     }
 
     private string DisplayCurrentAmor(Character character)
     {
-        if (character.Armor != null) return $"{character.Armor.Name}";
+        if (character.Armor is not null) return $"{character.Armor.Name}";
 
         return $"     ";
     }
 
     private string DisplayCurrentHealth(Character character) => $"{character.CurrentHP}/{character.MaxHP}";
 
-    private string DisplayCurrentHealthBar(Character character, TurnManager turn, PartyManager party)
+    private string DisplayCurrentHealthBar(Character character)
     {
         HealthColor(character);
         string healthBar = HealthBar(character);
@@ -730,22 +725,21 @@ public class DisplayInformation
     
     public List<MenuOption> DefineMenuToDisplay(params MenuOption[] menuOptions)
     {
-        List<MenuOption> menuList = new List<MenuOption>();
-        // it would be more flexible to pass the enums and foreach enum I add it, maybe
+        List<MenuOption> menuList = new List<MenuOption>(); // could be more flexible
         foreach (MenuOption option in menuOptions)
             menuList.Add(option);
 
         return menuList;
     }
 
-    public void DisplayCurrentInventoryItems(List<Consumables> currentItems, DisplayInformation info)
+    public void DisplayCurrentInventoryItems(List<Consumables> currentItems)
     {
         ClearMenu();
         if (currentItems.Count > 0) 
             DisplayConsumables(currentItems);
         else
         {
-            info.DisplayOptionsMenu();
+            DisplayOptionsMenu();
             InventoryEmptyMessage(25);
         }   
     }
@@ -764,7 +758,7 @@ public class DisplayInformation
                 string message = $"*{item.Name} ({count}) ";
                 if (TextOverflowing(message.Length, column, 60)) (column, row) = WrapLines(1, row);
                 WriteStringInPosition(column, row, message);
-                column = UpdateValueWith(column, message.Length); // this is repeated 
+                column = UpdateValueWith(column, message.Length);
                 count++;
             }
         }
@@ -779,22 +773,22 @@ public class DisplayInformation
         int count = 0;
         OptionDisplayPosition();
 
-        count = DisplayActionAvailable(party.ActionAvailable, turn, count);
-        count =  DisplayActionAvailable(party.ActionGearAvailable, turn, count);
+        count = DisplayActionAvailable(party.ActionAvailable, count, turn);
+        count =  DisplayActionAvailable(party.ActionGearAvailable, count, turn);
     }
 
-    private int DisplayActionAvailable(ActionCondition condition, TurnManager turn, int count)
+    private int DisplayActionAvailable(ActionCondition condition, int count, TurnManager turn)
     {
         foreach (AttackActions action in Enum.GetValues(typeof(AttackActions)))
         {
-            if (condition(action, turn)) count = DisplayActionCount(count, action, turn);
+            if (condition(action, turn)) count = DisplayActionCount(action, count, turn);
             Console.SetCursorPosition(1, Console.CursorTop);
         }
 
         return count;
     }
 
-    public int DisplayActionCount(int count, AttackActions action, TurnManager turn)
+    public int DisplayActionCount(AttackActions action, int count, TurnManager turn)
     {
         Console.WriteLine($"{count} - {new InputManager().Description(action, turn)}");
         return count += 1;
@@ -815,11 +809,10 @@ public class DisplayInformation
         Console.WriteLine($"It's {currentCharacter}'s turn...");
     }
 
-    public void DisplayCurrentGearInventory(List<Gear> currentGearInventory, DisplayInformation info)
+    public void DisplayCurrentGearInventory(List<Gear> currentGearInventory)
     {
         ClearMenu();
-        // Count > 0 is equivalent to .Any
-        if (currentGearInventory.Any()) DisplayGearInInventory(currentGearInventory);
+        if (currentGearInventory.Any()) DisplayGearInInventory(currentGearInventory); // Count > 0 is equivalent to .Any
         else
         {
             DisplayOptionsMenu();
@@ -844,7 +837,7 @@ public class DisplayInformation
         OptionDisplayPosition();
         foreach (Gear? gear in currentGearInventory)
         {
-            if (gear is not null) // returns null sometimes
+            if (gear is not null)
             {
                 string message = $"*{gear.Name} ({count}) "; 
                 if (TextOverflowing(message.Length, column, 60)) (column, row) = WrapLines(1, row);
