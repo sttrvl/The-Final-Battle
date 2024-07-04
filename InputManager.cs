@@ -1,6 +1,6 @@
 ﻿public class InputManager
 {
-    public string AskUser(string text)
+    public string AskUser(string text) // something like this but with ReadKey would had been good
     {
         Console.Write(text + " ");
         return Console.ReadLine() ?? "";
