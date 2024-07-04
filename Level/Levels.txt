@@ -1,0 +1,8 @@
+Format --> [Object = index] 
+[ExtraItems = 0]:[Quantity = 1] [ExtraGear = 2]:[Quantity = 3] [EquippedGear = 4] [Characters >= 5  ]
+SimulasSoup,     3, 		binaryHelm,     1,             default,           TrueProgrammer,VinFletcher,MylaraandSkorin
+SimulasSoup,     3,             dagger,	        2,             default,           Amarok, Amarok, ShadowOctopoid
+healthpotion,    2,		empty,	   	0,             noGear,            StoneAmarok,StoneAmarok
+healthpotion,    3,		empty,		0,             noGear,            Amarok,Amarok,StoneAmarok
+empty,         	 0,		empty,		0,             noGear,            ShadowOctopoid,EvilRobot,Skeleton
+empty,         	 0,		empty,		0,             noGear,            UncodedOne,StoneAmarok,StoneAmarok
