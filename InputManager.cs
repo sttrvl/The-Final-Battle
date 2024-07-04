@@ -15,7 +15,7 @@
     public void InputAction(PartyManager party, TurnManager turn, AttackActions attack) 
     {
         AttackAction? resultAction = GetAttackAction(attack);
-        Gear? resultGear = GetGear(turn.SelectedCharacter.Weapon, turn);
+        Gear? resultGear = GetGear(turn.Current.Character.Weapon, turn);
 
         if (resultGear != null && party.ActionGearAvailable(attack, turn))
             RetriveAttackProperties(turn, resultGear);
@@ -53,16 +53,16 @@
 
     private void RetriveAttackProperties(TurnManager turn, AttackAction attack)
     {
-        turn.CurrentAttack = attack;
-        turn.CurrentDamage = attack.AttackDamage;
-        turn.CurrentProbability = attack.AttackProbability;
+        turn.Current.SetAttack(attack);
+        turn.Current.SetDamage(attack.AttackDamage);
+        turn.Current.Probability = attack.AttackProbability;
 
-        if (attack is Gear) turn.SelectedCharacter.Weapon = (Gear)attack;
+        if (attack is Gear) turn.Current.Character.Weapon = (Gear)attack;
     }
 
     private void RetriveItemProperties(TurnManager turn)
     {
-        if (turn.ConsumableSelected.Heal != null) turn.CurrentHealValue = (int)turn.ConsumableSelected.Heal;
+        if (turn.Current.Consumable.Heal != null) turn.Current.HealValue = (int)turn.Current.Consumable.Heal;
     }
 
     public void AskInputAction(TurnManager turn, PartyManager party, DisplayInformation info)
@@ -73,7 +73,7 @@
         InputAction(party, turn, availableActions[inputAction]);
 
         DrawOpponentTargets(turn, party, info);
-        turn.CurrentTarget = ChooseTarget(turn, party);
+        turn.Current.SetTarget(ChooseTarget(turn, party));
     }
 
     private void DrawOpponentTargets(TurnManager turn, PartyManager party, DisplayInformation info)
@@ -92,7 +92,7 @@
 
     private int ChooseTarget(TurnManager turn, PartyManager party)
     {
-        if (turn.CurrentAttack is AreaAttack) return 0;
+        if (turn.Current.Attack is AreaAttack) return 0;
 
         int opponentPartyCount = turn.CurrentOpponentParty(party).Count;
         return opponentPartyCount == 1 ? 0 : ChooseOption("Choose a target:", opponentPartyCount);
@@ -137,21 +137,15 @@
     public MenuOptions InputMenuOption(List<MenuOption> menu, DisplayInformation info)
     {
         int? choice = null;
-        while (choice == null || CheckListBounds(choice, menu))
+        while (choice == null || CheckMenuListBounds(choice, menu))
         { 
-            DrawMenu(menu, info);
+            info.DrawMenu(menu);
             choice = ChooseOption("Please choose a Gamemode:", menu.Count);
         }
         return menu[(int)choice].Execute();
     }
 
-    private void DrawMenu(List<MenuOption> menu, DisplayInformation info)
-    {
-        Console.Clear();
-        info.DisplayMenu(menu, 23);
-    }
-
-    private bool CheckListBounds(int? choice, List<MenuOption> menu) => choice < 0 || choice >= menu.Count;
+    private bool CheckMenuListBounds(int? choice, List<MenuOption> menu) => choice < 0 || choice >= menu.Count;
 
     public (Character, Character) MenuSetter(MenuOptions option)
     {
@@ -206,7 +200,7 @@
         }
         if (option == 3)
         {
-            if (IsListEmpty(turn.CurrentGearInventory.Count))
+            if (IsListEmpty(turn.Current.GearInventory.Count))
             {
                 UserManager(turn, party, info);
                 return;
@@ -214,7 +208,7 @@
 
             ChooseInputGear(turn);
             turn.CheckSelectedCharacterGear(party);
-            party.EquipGear(turn);
+            party.ManageEquipGear(turn);
         }
     }
 
@@ -223,7 +217,7 @@
     public void ComputerAction(PartyManager party, TurnManager turn, DisplayInformation info)
     {
         if (CheckPlagueEffects(turn, party, info)) return;
-        // DEBUG: replaced set instance of computer for just new
+
         int? computerChoice = new Computer().ComputerMenuOption(party, turn, info); 
 
         if (computerChoice == 1)
@@ -240,7 +234,7 @@
         {
             new Computer().ComputerSelectGear(turn);
             turn.CheckSelectedCharacterGear(party);
-            party.EquipGear(turn);
+            party.ManageEquipGear(turn);
         }
     }
 
@@ -270,18 +264,18 @@
     private bool NumberIsNotNull(int? choice) => choice != null;
 
     private bool CheckForPlague(TurnManager turn, int index) => 
-        turn.CurrentSickPlagueCharacters[index].Character.ID == turn.SelectedCharacter.ID;
+        turn.CurrentSickPlagueCharacters[index].Character.ID == turn.Current.Character.ID;
 
     public void ChooseInputGear(TurnManager turn)
     {
-        int choice = ChooseOption("Choose gear to equip:", turn.CurrentGearInventory.Count);
-        turn.SelectedGear = choice;
+        int choice = ChooseOption("Choose gear to equip:", turn.Current.GearInventory.Count);
+        turn.Current.Gear = choice;
     }
     
     public void ChooseInputItem(TurnManager turn, PartyManager party)
     {
-        turn.ConsumableSelectedNumber = ChooseOption("Choose an item:", turn.GetCurrentItemInventory(party).Count);
-        turn.ConsumableSelected = turn.GetCurrentItemInventory(party)[turn.ConsumableSelectedNumber];
+        turn.Current.ConsumableNumber = ChooseOption("Choose an item:", turn.GetCurrentItemInventory(party).Count);
+        turn.Current.Consumable = turn.GetCurrentItemInventory(party)[turn.Current.ConsumableNumber];
     }
 
     public int ChooseOption(string prompt, int maxIndex)

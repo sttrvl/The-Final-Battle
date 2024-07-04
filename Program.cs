@@ -20,11 +20,9 @@ game.Run();
 // re order events
 // add methods to modify the structs instead of doing it directly
 
-
-// character            done
-// gameobjects          done
-// partymanager         done
+// partymanager         done, organize, added structs , helper methods done (they are records, change to struct)
+//                            now they are classes, done
+// turnmanager          done
 // game                 done
 // inputmanager         done
-// turnmanager          structs added, events organized, need to organize everything now and helper methods
 // displayinformation   done organized

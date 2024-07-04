@@ -42,7 +42,7 @@ public class Computer : Character
         foreach (Character c in turn.CurrentOpponentParty(party))
             targetsCount++;
 
-        turn.CurrentTarget = new Random().Next(0, targetsCount);
+        turn.Current.SetTarget(new Random().Next(0, targetsCount));
 
         List<int> normalAttacks = new List<int>();
         List<int> gearAttacks = new List<int>();
@@ -80,8 +80,8 @@ public class Computer : Character
         foreach (Consumables item in itemList)
             optionsCount++;
 
-        turn.ConsumableSelectedNumber = new Random().Next(0, optionsCount);
-        turn.ConsumableSelected = itemList[turn.ConsumableSelectedNumber];
+        turn.Current.ConsumableNumber = new Random().Next(0, optionsCount);
+        turn.Current.Consumable = itemList[turn.Current.ConsumableNumber];
     }
 
     public int ComputerMenuOption(PartyManager party, TurnManager turn, DisplayInformation info)
@@ -89,14 +89,14 @@ public class Computer : Character
         int randomNumber = new Random().Next(100);
         int computerChoice = 0;
 
-        Character character = turn.SelectedCharacter;
+        Character character = turn.Current.Character;
         List<Consumables> itemInventory = turn.GetCurrentItemInventory(party);
         
         if (itemInventory.Any(x => x is Consumables) && character?.CurrentHP < character?.MaxHP / 4 && randomNumber < 90)
         { // 1/4 health
             computerChoice = 2; // use item
         }
-        else if (character?.Weapon == null && turn.CurrentGearInventory.Count >= 1 && randomNumber < 50)
+        else if (character?.Weapon == null && turn.Current.GearInventory.Count >= 1 && randomNumber < 50)
         {
             computerChoice = 3; // equip gear  
         }
@@ -109,9 +109,9 @@ public class Computer : Character
 
     public void ComputerSelectGear(TurnManager turn)
     {
-        int count = turn.CurrentGearInventory.Count;
+        int count = turn.Current.GearInventory.Count;
         int randomNumber = new Random().Next(0, count);
-        turn.SelectedGear = randomNumber;
+        turn.Current.Gear = randomNumber;
     }
 }
 

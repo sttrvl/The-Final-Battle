@@ -248,8 +248,8 @@ public class CannonOfConsolas : Weapon
     public int GetTurnDamage(TurnManager turn)
     {
         int value = 1;
-        if (turn.Round % 3 == 0 && turn.Round % 5 == 0) value = 5;
-        else if (turn.Round % 3 == 0 || turn.Round % 5 == 0) value = 2;
+        if (turn.Round.CurrentRound % 3 == 0 && turn.Round.CurrentRound % 5 == 0) value = 5;
+        else if (turn.Round.CurrentRound % 3 == 0 || turn.Round.CurrentRound % 5 == 0) value = 2;
         
         return value;
     }
