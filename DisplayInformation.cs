@@ -68,7 +68,7 @@ public class DisplayInformation
 
     public void OnDisplayGearEquipped(TurnManager turn)
     {
-        if (turn.Current.GearInventory[turn.Current.Gear] is Armor)
+        if (turn.Current.GearInventory[turn.Current.GearChoice] is Armor)
         {
             List<ColoredText> colorText = new List<ColoredText>
             {
@@ -80,7 +80,7 @@ public class DisplayInformation
             LogMessages.Add(colorText);
         }
 
-        if (turn.Current.GearInventory[turn.Current.Gear] is Weapon)
+        if (turn.Current.GearInventory[turn.Current.GearChoice] is Weapon)
         {
             List<ColoredText> colorText = new List<ColoredText>
             {
@@ -311,7 +311,7 @@ public class DisplayInformation
         {
             new ColoredText($"{turn.Current.Character}", PartyColor(party, turn.CurrentParty(party))),
             new ColoredText($" obtained ", PartyColor(party, turn.CurrentParty(party))),
-            new ColoredText($"{turn.Current.Character.SoulsValue} ", ConsoleColor.Cyan),
+            new ColoredText($"{turn.CurrentOpponentParty(party)[turn.Current.Target].SoulsXP} ", ConsoleColor.Cyan),
             new ColoredText($"souls, ", ConsoleColor.White),
             new ColoredText($"their ability ", ConsoleColor.White),
             new ColoredText($"gauge was filled", ConsoleColor.White),
