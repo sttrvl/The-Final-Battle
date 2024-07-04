@@ -141,31 +141,13 @@ public class PartyManager
 
     public void PartySetUpSettings(TurnManager turn)
     {
-        List<Level> levels = LoadLevelsFromFile("Levels.txt", turn);
+        List<Level> levels = LoadLevelsFromFile("..\\..\\..\\Level\\Levels.txt", turn);
 
         foreach (Level level in levels)
         {
             List<Dictionary<Character, Gear?>> currentGearChoices = FileGearChoices(level);
             ManageFileRounds(currentGearChoices, level);
         }
-    }
-
-    private void ManageFileRounds(List<Dictionary<Character, Gear?>> currentGearChoices, Level level)
-    {
-        for (int index = 0; index < currentGearChoices.Count; index++)
-            AddRound(currentGearChoices[0], RetriveCharactersWithGear(currentGearChoices[0]),
-                     level.ExtraItemType, level.itemAmount, level.ExtraGearType, level.gearAmount);
-    }
-
-    private List<Dictionary<Character, Gear?>> FileGearChoices(Level level)
-    {
-        List<Dictionary<Character, Gear?>> choices = new List<Dictionary<Character, Gear?>>();
-        if (level.equippedGearChoice != null)
-            choices.Add(SetUpCharacterWithGear(level.equippedGearChoice, level.characters));
-        else
-            choices.Add(SetUpCharacterWithGear(null, level.characters));
-
-        return choices;
     }
 
     public List<Level> LoadLevelsFromFile(string filePath, TurnManager turn)
@@ -187,6 +169,24 @@ public class PartyManager
                        extraGearAmount, GetGear(tokens[4].Trim(), turn), characters.ToArray()));
         }
         return levels;
+    }
+
+    private void ManageFileRounds(List<Dictionary<Character, Gear?>> currentGearChoices, Level level)
+    {
+        for (int index = 0; index < currentGearChoices.Count; index++)
+            AddRound(currentGearChoices[0], RetriveCharactersWithGear(currentGearChoices[0]),
+                     level.ExtraItemType, level.itemAmount, level.ExtraGearType, level.gearAmount);
+    }
+
+    private List<Dictionary<Character, Gear?>> FileGearChoices(Level level)
+    {
+        List<Dictionary<Character, Gear?>> choices = new List<Dictionary<Character, Gear?>>();
+        if (level.equippedGearChoice != null)
+            choices.Add(SetUpCharacterWithGear(level.equippedGearChoice, level.characters));
+        else
+            choices.Add(SetUpCharacterWithGear(null, level.characters));
+
+        return choices;
     }
 
     private int ManageFileItemAmount(string[] tokens) => Convert.ToInt32(tokens[1].Trim());
