@@ -248,7 +248,7 @@ public class TurnManager // Possible structs here
 
     private void CheckComputerDelay(TurnManager turn)
     {
-        if (Current.PlayerType is Computer) Thread.Sleep(500);
+        if (Current.PlayerType is Computer) Thread.Sleep(0);
     }
 
     public List<Character> TauntedCharacters = new List<Character>();
@@ -264,7 +264,8 @@ public class TurnManager // Possible structs here
 
     public bool CheckTaunt() => !TauntedCharacters.Contains(Current.Character);
 
-    public bool CurrentTargetHasGear(List<Character> opponentParty) => opponentParty[Current.Target].Weapon is not null;
+    public bool CurrentTargetHasGear(List<Character> opponentParty) => opponentParty[Current.Target].Weapon is not null ||
+                                                                       opponentParty[Current.Target].Armor is not null;
 
     public void CheckSelectedCharacterGear(PartyManager party)
     {
