@@ -1,4 +1,14 @@
-﻿public class InputManager
+﻿using TheFinalBattle.Characters;
+using TheFinalBattle.TurnSystem;
+using TheFinalBattle.PartyManagement;
+using TheFinalBattle.InformationDisplay;
+using TheFinalBattle.GameObjects.Attacks;
+using TheFinalBattle.GameObjects.Gear;
+using TheFinalBattle.GameObjects.MenuActions;
+
+namespace TheFinalBattle.InputManagement;
+
+public class InputManager
 {
     public string AskUser(string text) // something like this but with ReadKey would had been good
     {
@@ -12,15 +22,15 @@
         party.UseConsumableItem(turn);
     }
 
-    public void InputAction(PartyManager party, TurnManager turn, AttackActions attack) 
+    public void InputAction(TurnManager turn, PartyManager party, AttackActions attack) 
     {
         AttackAction? resultAction = GetAttackAction(attack);
         Gear? resultGear = GetGear(turn.Current.Character.Weapon, turn);
 
         if (resultGear != null && party.ActionGearAvailable(attack, turn))
-            RetriveAttackProperties(turn, resultGear);
+            RetriveAttackProperties(resultGear, turn);
         if (resultAction != null && party.ActionAvailable(attack, turn))
-            RetriveAttackProperties(turn, resultAction);
+            RetriveAttackProperties(resultAction, turn);
     }
 
     AttackAction? GetAttackAction(AttackActions attack)
@@ -51,7 +61,7 @@
         };
     }
 
-    private void RetriveAttackProperties(TurnManager turn, AttackAction attack)
+    private void RetriveAttackProperties(AttackAction attack, TurnManager turn)
     {
         turn.Current.SetAttack(attack);
         turn.Current.SetDamage(attack.AttackDamage);
@@ -67,10 +77,10 @@
 
     public void AskInputAction(TurnManager turn, PartyManager party, DisplayInformation info)
     {
-        List<AttackActions> availableActions = ActionAvailableCheck(party, turn);
+        List<AttackActions> availableActions = ActionAvailableCheck(turn, party);
         
         int inputAction = ChooseOption("Choose an action:", availableActions.Count);
-        InputAction(party, turn, availableActions[inputAction]);
+        InputAction(turn, party, availableActions[inputAction]);
 
         DrawOpponentTargets(turn, party, info);
         turn.Current.SetTarget(ChooseTarget(turn, party));
@@ -98,7 +108,7 @@
         return opponentPartyCount == 1 ? 0 : ChooseOption("Choose a target:", opponentPartyCount);
     }
 
-    public List<AttackActions> ActionAvailableCheck(PartyManager party, TurnManager turn)
+    public List<AttackActions> ActionAvailableCheck(TurnManager turn, PartyManager party)
     {
         List<AttackActions> AvailableActions = new List<AttackActions>();
         foreach (AttackActions action in Enum.GetValues(typeof(AttackActions)))
@@ -137,7 +147,7 @@
     public MenuOptions InputMenuOption(List<MenuOption> menu, DisplayInformation info)
     {
         int? choice = null;
-        while (choice == null || CheckMenuListBounds(choice, menu))
+        while (choice == null || CheckMenuListBounds(menu, choice))
         { 
             info.DrawMenu(menu);
             choice = ChooseOption("Please choose a Gamemode:", menu.Count);
@@ -145,7 +155,7 @@
         return menu[(int)choice].Execute();
     }
 
-    private bool CheckMenuListBounds(int? choice, List<MenuOption> menu) => choice < 0 || choice >= menu.Count;
+    private bool CheckMenuListBounds(List<MenuOption> menu, int? choice) => choice < 0 || choice >= menu.Count;
 
     public (Character, Character) MenuSetter(MenuOptions option)
     {
@@ -157,7 +167,7 @@
         };
     }
 
-    public int OptionsMenuInput(PartyManager party, DisplayInformation info, TurnManager turn)
+    public int OptionsMenuInput(TurnManager turn, PartyManager party, DisplayInformation info)
     {
         int options = 0;
         foreach (CharacterOptions o in Enum.GetValues(typeof(CharacterOptions)))
@@ -165,22 +175,22 @@
 
         int? choice = ChooseOption("Choose what to do:", options);
 
-        return turn.CurrentMenu((int)choice, party, turn, info);
+        return turn.CurrentMenu(party, info, (int)choice);
     }
 
     public void UserManager(TurnManager turn, PartyManager party, DisplayInformation info)
     {
         if (turn.CurrentPlayerIsComputer())
-            ComputerAction(party, turn, info);
+            ComputerAction(turn, party, info);
         else
-            HumanAction(party, info, turn);
+            HumanAction(turn, party, info);
     }
 
-    public void HumanAction(PartyManager party, DisplayInformation info, TurnManager turn)
+    public void HumanAction(TurnManager turn, PartyManager party, DisplayInformation info)
     {
         if (CheckPlagueEffects(turn, party, info)) return;
 
-        int? option = OptionsMenuInput(party, info, turn);
+        int? option = OptionsMenuInput(turn, party, info);
 
         if (option == 1)
         {
@@ -214,15 +224,15 @@
 
     private bool IsListEmpty(int count) => count == 0;
 
-    public void ComputerAction(PartyManager party, TurnManager turn, DisplayInformation info)
+    public void ComputerAction(TurnManager turn, PartyManager party, DisplayInformation info)
     {
         if (CheckPlagueEffects(turn, party, info)) return;
 
-        int? computerChoice = new Computer().ComputerMenuOption(party, turn, info); 
+        int? computerChoice = new Computer().ComputerMenuOption(turn, party, info); 
 
         if (computerChoice == 1)
         {
-            new Computer().ExecuteAction(party, turn);
+            new Computer().ExecuteAction(turn, party);
             party.DamageTaken(party, turn);
         }
         if (computerChoice == 2)
@@ -258,7 +268,7 @@
 
     private void ForceChoice(TurnManager turn, PartyManager party, DisplayInformation info, int index)
     {
-        turn.CurrentMenu(turn.CurrentSickPlagueCharacters[index].Character.ForcedChoice, party, turn, info);
+        turn.CurrentMenu(party, info, turn.CurrentSickPlagueCharacters[index].Character.ForcedChoice);
     }
 
     private bool NumberIsNotNull(int? choice) => choice != null;
