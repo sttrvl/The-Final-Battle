@@ -1,4 +1,14 @@
-﻿public abstract class Character
+﻿using TheFinalBattle.InputManagement;
+using TheFinalBattle.TurnSystem;
+using TheFinalBattle.InformationDisplay;
+using TheFinalBattle.GameObjects.Items;
+using TheFinalBattle.GameObjects.Gear;
+using TheFinalBattle.GameObjects.AttackModifiers;
+using TheFinalBattle.PartyManagement;
+
+namespace TheFinalBattle.Characters;
+
+public abstract class Character
 {
     public Guid ID { get; } = Guid.NewGuid();
     public string Name { get; set; } = "Character";
@@ -36,7 +46,7 @@ public class Computer : Character
         Name = _defaultName;
     }
 
-    public void ExecuteAction(PartyManager party, TurnManager turn)
+    public void ExecuteAction(TurnManager turn, PartyManager party)
     {
         int targetsCount = 0;
         foreach (Character c in turn.CurrentOpponentParty(party))
@@ -48,7 +58,7 @@ public class Computer : Character
         List<int> gearAttacks = new List<int>();
         int actionNumber;
 
-        List<AttackActions> availableActions = new InputManager().ActionAvailableCheck(party, turn);
+        List<AttackActions> availableActions = new InputManager().ActionAvailableCheck(turn, party);
 
         for (int index = 0; index < availableActions.Count; index++)
         {
@@ -71,7 +81,7 @@ public class Computer : Character
         else
             actionNumber = normalAttacks[0];
 
-        new InputManager().InputAction(party, turn, availableActions[actionNumber]);
+        new InputManager().InputAction(turn, party, availableActions[actionNumber]);
     }
 
     public void ComputerSelectItem(List<Consumables> itemList, TurnManager turn)
@@ -84,7 +94,7 @@ public class Computer : Character
         turn.Current.SetConsumable(itemList[turn.Current.ConsumableNumber]);
     }
 
-    public int ComputerMenuOption(PartyManager party, TurnManager turn, DisplayInformation info)
+    public int ComputerMenuOption(TurnManager turn, PartyManager party, DisplayInformation info)
     {
         int randomNumber = new Random().Next(100);
         int computerChoice = 0;
@@ -103,7 +113,7 @@ public class Computer : Character
         else if (randomNumber < 90)
             computerChoice = 1; // attack
 
-        turn.CurrentMenu(computerChoice, party, turn, info);
+        turn.CurrentMenu(party, info, computerChoice);
         return computerChoice;
     }
 
@@ -113,11 +123,13 @@ public class Computer : Character
         int randomNumber = new Random().Next(0, count);
         turn.Current.SetGear(randomNumber);
     }
+
+    public override string ToString() => Name;
 }
 
 public abstract class Hero : Character
 {
-
+    public override string ToString() => Name;
 }
 
 public class TrueProgrammer : Hero
@@ -180,7 +192,7 @@ public class MylaraAndSkorin : Hero
 
 public abstract class Monster : Character
 {
-
+    public override string ToString() => Name;
 }
 
 public class Skeleton : Monster
