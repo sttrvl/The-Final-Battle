@@ -80,8 +80,8 @@ public class Computer : Character
         foreach (Consumables item in itemList)
             optionsCount++;
 
-        turn.Current.ConsumableNumber = new Random().Next(0, optionsCount);
-        turn.Current.Consumable = itemList[turn.Current.ConsumableNumber];
+        turn.Current.SetConsumableNumber(new Random().Next(0, optionsCount));
+        turn.Current.SetConsumable(itemList[turn.Current.ConsumableNumber]);
     }
 
     public int ComputerMenuOption(PartyManager party, TurnManager turn, DisplayInformation info)
@@ -111,7 +111,7 @@ public class Computer : Character
     {
         int count = turn.Current.GearInventory.Count;
         int randomNumber = new Random().Next(0, count);
-        turn.Current.Gear = randomNumber;
+        turn.Current.SetGear(randomNumber);
     }
 }
 
