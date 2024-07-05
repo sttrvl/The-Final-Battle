@@ -69,7 +69,7 @@ public class DisplayInformation
             new ColoredText($"was consumed", ConsoleColor.White),
             new ColoredText($"by", ConsoleColor.White),
             new ColoredText($"{turn.Current.Character}", CharacterColor(turn.Current.Character)),
-            new ColoredText($".", CharacterColor(turn.Current.Character))
+            new ColoredText($".", ConsoleColor.White)
         };
         LogMessages.Add(colorText);
     }
@@ -357,7 +357,7 @@ public class DisplayInformation
             new ColoredText($"energy", ConsoleColor.Cyan),
             new ColoredText($"arise within them,", ConsoleColor.White),
             new ColoredText($"they have been", ConsoleColor.White),
-            new ColoredText($" granted", ConsoleColor.Cyan),
+            new ColoredText($"granted", ConsoleColor.Cyan),
             new ColoredText($"+1 damage", ConsoleColor.Cyan),
             new ColoredText($"!", ConsoleColor.Cyan)
         };
