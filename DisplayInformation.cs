@@ -39,7 +39,7 @@ public class DisplayInformation
 
     public void OnDisplayTaunt(TurnManager turn)
     {
-        if (turn.Current.Character.TauntText != null)
+        if (turn.Current.Character?.TauntText != null)
         {
             List<ColoredText> colorText = new List<ColoredText>
             {
@@ -187,7 +187,7 @@ public class DisplayInformation
 
     public void OnDisplayDefensiveModifierEffects(TurnManager turn, PartyManager party)
     {
-        string modifierProperty = turn.Current.TargetDefensiveModifier.Value < 0 ? "reduced" : "increased";
+        string modifierProperty = turn.Current.TargetDefensiveModifier?.Value < 0 ? "reduced" : "increased";
 
         DefensiveAttackModifier? targetModifier = turn.CurrentOpponentParty(party)[turn.Current.Target].DefensiveAttackModifier;
 
@@ -195,7 +195,7 @@ public class DisplayInformation
         {
             new ColoredText($"{targetModifier}", DefensiveModifierColor(targetModifier)),
             new ColoredText($"{modifierProperty} the attack damage by", ConsoleColor.White),
-            new ColoredText($"{Math.Abs(turn.Current.TargetDefensiveModifier.Value)} point/s", ConsoleColor.White),
+            new ColoredText($"{Math.Abs(turn.Current.TargetDefensiveModifier!.Value)} point/s", ConsoleColor.White),
             new ColoredText($".", ConsoleColor.White)
         };
         LogMessages.Add(colorText);
@@ -203,13 +203,13 @@ public class DisplayInformation
 
     public void OnDisplayOffensiveModifierEffects(TurnManager turn, PartyManager party)
     {
-        string modifierProperty = turn.Current.OffensiveModifier.Value < 0 ? "reduced" : "increased";
-        OffensiveAttackModifier offensiveModifier = turn.Current.OffensiveModifier;
+        string modifierProperty = turn.Current.OffensiveModifier?.Value < 0 ? "reduced" : "increased";
+        OffensiveAttackModifier? offensiveModifier = turn.Current.OffensiveModifier;
         List<ColoredText> colorText = new List<ColoredText>
         {
             new ColoredText($"{offensiveModifier}", OffensiveModifierColor(offensiveModifier)),
             new ColoredText($"{modifierProperty} the attack damage by", ConsoleColor.White),
-            new ColoredText($"{Math.Abs(turn.Current.OffensiveModifier.Value)} point/s", ConsoleColor.White),
+            new ColoredText($"{Math.Abs(turn.Current.OffensiveModifier!.Value)} point/s", ConsoleColor.White),
             new ColoredText($".", ConsoleColor.White)
         };
         LogMessages.Add(colorText);
@@ -287,7 +287,7 @@ public class DisplayInformation
             new ColoredText($"{turn.CurrentPartyName(party)}'s", PartyColor(party, turn.CurrentParty(party))),
             new ColoredText($"obtained:", ConsoleColor.Green)
         };
-        foreach (Gear gear in party.MonsterParty.GearInventory)
+        foreach (Gear? gear in party.MonsterParty.GearInventory)
             colorText.Add(new ColoredText($"{gear}", GearColor(gear)));
 
         colorText.Add(DotOrNothing(colorText));
@@ -809,7 +809,7 @@ public class DisplayInformation
         Console.WriteLine($"It's {currentCharacter}'s turn...");
     }
 
-    public void DisplayCurrentGearInventory(List<Gear> currentGearInventory)
+    public void DisplayCurrentGearInventory(List<Gear?> currentGearInventory)
     {
         ClearMenu();
         if (currentGearInventory.Any()) DisplayGearInInventory(currentGearInventory); // Count > 0 is equivalent to .Any
@@ -828,7 +828,7 @@ public class DisplayInformation
         Console.ResetColor();
     }
 
-    private void DisplayGearInInventory(List<Gear> currentGearInventory)
+    private void DisplayGearInInventory(List<Gear?> currentGearInventory)
     {
         
         int count = 0;
@@ -855,7 +855,7 @@ public class DisplayInformation
         Console.Write(message);
     }
 
-    private ConsoleColor CharacterColor(Character character)
+    private ConsoleColor CharacterColor(Character? character)
     {
         return character switch
         {
@@ -874,7 +874,7 @@ public class DisplayInformation
 
     private ConsoleColor CurrentAttackColor(TurnManager turn)
     {
-        return turn.Current.Attack.Execute() switch
+        return turn.Current.Attack?.Execute() switch
         {
             AttackActions.Punch          => ConsoleColor.Gray,
             AttackActions.BoneCrunch     => ConsoleColor.DarkGray,
@@ -900,7 +900,7 @@ public class DisplayInformation
         return ConsoleColor.DarkRed;
     }
 
-    private ConsoleColor ItemColor(Consumables item)
+    private ConsoleColor ItemColor(Consumables? item)
     {
         return item switch
         {
@@ -910,7 +910,7 @@ public class DisplayInformation
         };
     }
 
-    private ConsoleColor GearColor(Gear gear)
+    private ConsoleColor GearColor(Gear? gear)
     {
         return gear switch
         {
@@ -923,17 +923,17 @@ public class DisplayInformation
         };
     }
 
-    private ConsoleColor DefensiveModifierColor(DefensiveAttackModifier defensiveModifier)
+    private ConsoleColor DefensiveModifierColor(DefensiveAttackModifier? defensiveModifier)
     {
         return defensiveModifier switch
         {
-            StoneArmor => ConsoleColor.DarkGray,
+            StoneArmor  => ConsoleColor.DarkGray,
             ObjectSight => ConsoleColor.Cyan,
-            _ => ConsoleColor.Blue
+            _           => ConsoleColor.Blue
         };
     }
 
-    private ConsoleColor OffensiveModifierColor(OffensiveAttackModifier offensiveModifier)
+    private ConsoleColor OffensiveModifierColor(OffensiveAttackModifier? offensiveModifier)
     {
         return offensiveModifier switch
         {

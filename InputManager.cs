@@ -161,9 +161,10 @@ public class InputManager
     {
         return option switch
         {
-            MenuOptions.ComputerVsComputer => (new Computer(),    new Computer()),
+            MenuOptions.ComputerVsComputer => (new Computer(), new Computer()),
             MenuOptions.PlayerVsComputer   => (new HumanPlayer(), new Computer()),
-            MenuOptions.PlayerVsPlayer     => (new HumanPlayer(), new HumanPlayer())
+            MenuOptions.PlayerVsPlayer     => (new HumanPlayer(), new HumanPlayer()),
+            _                              => throw new NotImplementedException(), // did not implement anything to catch it
         };
     }
 

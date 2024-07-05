@@ -99,7 +99,7 @@ public class Computer : Character
         int randomNumber = new Random().Next(100);
         int computerChoice = 0;
 
-        Character character = turn.Current.Character;
+        Character? character = turn.Current.Character;
         List<Consumables> itemInventory = turn.GetCurrentItemInventory(party);
         
         if (itemInventory.Any(x => x is Consumables) && character?.CurrentHP < character?.MaxHP / 4 && randomNumber < 90)

@@ -12,7 +12,6 @@ using TheFinalBattle.GameObjects.Attacks;
 
 namespace TheFinalBattle.PartyManagement;
 
-
 public class PartyManager
 {
     public PartyInfo HeroParty = new PartyInfo();
@@ -20,7 +19,7 @@ public class PartyManager
     public class PartyInfo
     {
         public int TurnsPlayed { get; private set; } = 0;
-        public Character Player { get; private set; }
+        public Character? Player { get; private set; }
         public List<Character> PartyList { get; private set; } = new List<Character>();
         public List<Consumables> ItemInventory { get; private set; } = new List<Consumables>();
         public List<Gear?> GearInventory { get; private set; } = new List<Gear?>();
@@ -92,7 +91,7 @@ public class PartyManager
     public bool CheckForPlagueSickCharacter(TurnManager turn) => turn.CurrentSickPlagueCharacters.Count > 0;
 
 
-    public event Action<Character, int> PoisonDamage;
+    public event Action<Character, int>? PoisonDamage;
 
     public void PoisonCharacter(TurnManager turn)
     {
@@ -102,11 +101,11 @@ public class PartyManager
             UpdateHealthReduce(poisoned.Character, poisoned.PoisonDamage);
             poisoned.TurnsPoisoned -= 1;
             turn.CurrentPoisonedCharacters[index] = poisoned;
-            PoisonDamage.Invoke(poisoned.Character, poisoned.PoisonDamage);
+            PoisonDamage?.Invoke(poisoned.Character, poisoned.PoisonDamage);
         }   
     }
 
-    public event Action<Character> PlagueSickDamage;
+    public event Action<Character>? PlagueSickDamage;
     public void PlagueSickCharacter(TurnManager turn)
     {
         for (int index = 0; index < turn.CurrentSickPlagueCharacters.Count; index++)
@@ -115,7 +114,7 @@ public class PartyManager
             sick.Character.ForcedChoice = 0;
             sick.TurnsSick -= 1;
             turn.CurrentSickPlagueCharacters[index] = sick;
-            PlagueSickDamage.Invoke(sick.Character);
+            PlagueSickDamage?.Invoke(sick.Character);
         }
     }
 
@@ -243,6 +242,7 @@ public class PartyManager
             "amarok"          => new Amarok(),
             "evilrobot"       => new EvilRobot(),
             "mylaraandskorin" => new MylaraAndSkorin(turn),
+            _                 => throw new NotImplementedException()
         };
     }
 
@@ -274,7 +274,7 @@ public class PartyManager
                 currentParty.AddItem(itemType);
     }
 
-    public event Action AdditionalMonsterRound;
+    public event Action? AdditionalMonsterRound;
     private void ManageAdditionalMonsterLists(Gear? gearType, int gearAmount, Consumables itemType, int itemAmount,
                                               List<Character> characterList)
     {
@@ -343,7 +343,7 @@ public class PartyManager
     public bool IsPartyEmpty(List<Character> party) => party.Count == 0;
 
 
-    public event Action<TurnManager, PartyManager> AttackInfo;
+    public event Action<TurnManager, PartyManager>? AttackInfo;
     public void DamageTaken(PartyManager party, TurnManager turn)
     {
         if (AttackManager(party, turn))
@@ -353,7 +353,7 @@ public class PartyManager
             CheckTemporaryEffect(turn);
             CheckSoulValue(turn);
             ManageHealth(turn);
-            AttackInfo.Invoke(turn, party);
+            AttackInfo?.Invoke(turn, party);
         }
     }
 
@@ -378,27 +378,27 @@ public class PartyManager
         character.CurrentHP = character.HealthClamp();
     }
 
-    public event Action<TurnManager, PartyManager> AttackSuccesful;
-    public event Action<TurnManager> AttackMissed;
+    public event Action<TurnManager, PartyManager>? AttackSuccesful;
+    public event Action<TurnManager>? AttackMissed;
     private bool AttackManager(PartyManager party, TurnManager turn)
     {
         if (ManageProbability(turn.Current.Probability))
         {
-            AttackSuccesful.Invoke(turn, party);
+            AttackSuccesful?.Invoke(turn, party);
             return true;
         }
         else
         {
-            AttackMissed.Invoke(turn);
+            AttackMissed?.Invoke(turn);
             return false;
         }  
     }
 
-    public event Action<TurnManager> SoulBonus;
+    public event Action<TurnManager>? SoulBonus;
 
     private void CheckSoulValue(TurnManager turn)
     {
-        if (turn.Current.Character.SoulsValue >= 3)
+        if (turn.Current.Character?.SoulsValue >= 3)
         {
             turn.Current.IncreaseDamage(1);
             turn.Current.Character.SoulsValue = 0;
@@ -424,7 +424,7 @@ public class PartyManager
 
     private bool ManageProbability(double probability) => new Random().Next(100) < probability * 100;
 
-    public event Action<TurnManager, PartyManager> DefensiveModifierApplied;
+    public event Action<TurnManager, PartyManager>? DefensiveModifierApplied;
     public void ManageDefensiveModifier(TurnManager turn)
     {
         switch (turn.CurrentOpponentParty(this)[turn.Current.Target].DefensiveAttackModifier)
@@ -432,13 +432,13 @@ public class PartyManager
             case StoneArmor:
                 turn.Current.SetTargetDefensiveModifier(new StoneArmor());
                 turn.Current.IncreaseDamage(turn.Current.TargetDefensiveModifier.Value);
-                DefensiveModifierApplied.Invoke(turn, this);
+                DefensiveModifierApplied?.Invoke(turn, this);
                 break;
-            case ObjectSight when turn.Current.Attack.AttackType == AttackTypes.Decoding:
+            case ObjectSight when turn.Current.Attack?.AttackType == AttackTypes.Decoding:
                 turn.Current.SetTargetDefensiveModifier(new ObjectSight());
                 turn.Current.IncreaseDamage(turn.Current.TargetDefensiveModifier.Value);
                 turn.ClampCurrentDamage();
-                DefensiveModifierApplied.Invoke(turn, this);
+                DefensiveModifierApplied?.Invoke(turn, this);
                 break;
             default:
 
@@ -446,7 +446,7 @@ public class PartyManager
         }
     }
 
-    public event Action<TurnManager, PartyManager> OffensiveModifierApplied;
+    public event Action<TurnManager, PartyManager>? OffensiveModifierApplied;
     public void ManageOffensiveModifier(TurnManager turn)
     {
         List<OffensiveAttackModifier?> modifier = new List<OffensiveAttackModifier?>();
@@ -462,7 +462,7 @@ public class PartyManager
                 case Binary:
                     turn.Current.SetOffensiveModifier(new Binary());
                     turn.Current.IncreaseDamage(turn.Current.OffensiveModifier.Value);
-                    OffensiveModifierApplied.Invoke(turn, this);
+                    OffensiveModifierApplied?.Invoke(turn, this);
                     break;
                 default:
 
@@ -471,11 +471,11 @@ public class PartyManager
         }
     }
 
-    public event Action<TurnManager> gearStolen;
+    public event Action<TurnManager>? gearStolen;
 
     public void ManageSideEffect(TurnManager turn)
     {
-        switch (turn.Current.Attack.AttackSideEffect)
+        switch (turn.Current.Attack?.AttackSideEffect)
         {
             case AttackSideEffects.Steal:
                 Gear? opponentWeapon = turn.CurrentOpponentParty(this)[turn.Current.Target].Weapon;
@@ -493,13 +493,13 @@ public class PartyManager
         }
     }
 
-    public event Action<TurnManager, PartyManager> CharacterPoisoned;
-    public event Action<TurnManager, PartyManager> CharacterPlagueSick;
+    public event Action<TurnManager, PartyManager>? CharacterPoisoned;
+    public event Action<TurnManager, PartyManager>? CharacterPlagueSick;
     public void ApplyTemporaryEffect(TurnManager turn)
     {
         List<Character> opponentParty = turn.CurrentOpponentParty(this);
         int target = turn.Current.Target;
-        switch (turn.Current.Attack.AttackTemporaryEffect)
+        switch (turn.Current.Attack?.AttackTemporaryEffect)
         {
             case AttackTemporaryEffects.Poison:
                 Character poisonedTarget = opponentParty[target];
@@ -538,17 +538,17 @@ public class PartyManager
     private void RemoveGearFromTarget(TurnManager turn) =>
         turn.CurrentOpponentParty(this)[turn.Current.Target].Weapon = null;
 
-    public event Action<TurnManager> ConsumableItemUsed;
-    public void UseConsumableItem(TurnManager turn) => ConsumableItemUsed.Invoke(turn);
+    public event Action<TurnManager>? ConsumableItemUsed;
+    public void UseConsumableItem(TurnManager turn) => ConsumableItemUsed?.Invoke(turn);
 
-    public event Action<Character> CharacterDied;
+    public event Action<Character>? CharacterDied;
     public void DeathManager(TurnManager turn)
     {
         for (int index = 0; index < turn.CurrentOpponentParty(this).Count; index++)
         {
             if (CheckDeath(turn.CurrentOpponentParty(this)[index]))
             {
-                CharacterDied.Invoke(turn.CurrentOpponentParty(this)[index]);
+                CharacterDied?.Invoke(turn.CurrentOpponentParty(this)[index]);
                 ManageDeath(turn);
             }
         }
@@ -572,10 +572,10 @@ public class PartyManager
         NextMonsterParty(turn);
     }
 
-    public event Action<TurnManager, PartyManager> PartyDefeated;
+    public event Action<TurnManager, PartyManager>? PartyDefeated;
     public void ManageHeroesDefeated(TurnManager turn)
     {
-        if (IsPartyEmpty(HeroParty.PartyList)) PartyDefeated.Invoke(turn, this);
+        if (IsPartyEmpty(HeroParty.PartyList)) PartyDefeated?.Invoke(turn, this);
     }
 
     public void NextMonsterParty(TurnManager turn)
@@ -590,7 +590,7 @@ public class PartyManager
         turn.AdditionalBattleRoundUsed();
     }
 
-    public event Action<TurnManager, PartyManager> GearObtained;
+    public event Action<TurnManager, PartyManager>? GearObtained;
     private void TransferDeathMonsterPartyGear(TurnManager turn)
     {
         GearObtained?.Invoke(turn, this);
@@ -601,11 +601,10 @@ public class PartyManager
         }
     }
 
-    public event Action<TurnManager, PartyManager> ItemsObtained;
+    public event Action<TurnManager, PartyManager>? ItemsObtained;
     private void TransferDeathMonsterPartyItems(TurnManager turn)
     {
         ItemsObtained?.Invoke(turn, this);
-        string message = "";
 
         for (int index = 0; index < MonsterParty.ItemInventory.Count; index++)
         {
@@ -659,7 +658,7 @@ public class PartyManager
         if (turn.CurrentTargetHasGear(turn.CurrentOpponentParty(this))) AddDeathGearToOpponentInventory(turn);
     }
 
-    public event Action<TurnManager, PartyManager> SoulObtained;
+    public event Action<TurnManager, PartyManager>? SoulObtained;
     public void ManageDeathCharacterSoul(TurnManager turn)
     {
         if (turn.Current.Character is Hero && turn.CurrentOpponentParty(this)[turn.Current.Target].SoulsXP > 0)
@@ -675,18 +674,18 @@ public class PartyManager
             turn.Current.Character.SoulsValue += turn.CurrentOpponentParty(this)[turn.Current.Target].SoulsXP;
     }
 
-    public event Action<Gear?, TurnManager, PartyManager> DeathOpponentGearObtained;
+    public event Action<Gear?, TurnManager, PartyManager>? DeathOpponentGearObtained;
     public void AddDeathGearToOpponentInventory(TurnManager turn)
     {
         if (turn.CurrentOpponentParty(this)[turn.Current.Target].Weapon is not null)
         {
             turn.Current.GearInventory.Add(turn.CurrentOpponentParty(this)[turn.Current.Target].Weapon);
-            DeathOpponentGearObtained.Invoke(turn.CurrentOpponentParty(this)[turn.Current.Target].Weapon, turn, this);
+            DeathOpponentGearObtained?.Invoke(turn.CurrentOpponentParty(this)[turn.Current.Target].Weapon, turn, this);
         }
         if (turn.CurrentOpponentParty(this)[turn.Current.Target].Armor is not null)
         {
             turn.Current.GearInventory.Add(turn.CurrentOpponentParty(this)[turn.Current.Target].Armor);
-            DeathOpponentGearObtained.Invoke(turn.CurrentOpponentParty(this)[turn.Current.Target].Armor, turn, this);
+            DeathOpponentGearObtained?.Invoke(turn.CurrentOpponentParty(this)[turn.Current.Target].Armor, turn, this);
         }
     }
 
@@ -700,7 +699,7 @@ public class PartyManager
     public bool ActionGearAvailable(AttackActions action, TurnManager turn)
     {
         if (action != AttackActions.Nothing)
-            if (action == turn.Current.Character.Weapon?.Execute()) return true; 
+            if (action == turn.Current.Character?.Weapon?.Execute()) return true; 
         // assuming there is no same attack for gears we are okay, else: add && for extra condition
         return false;
     }
@@ -709,18 +708,18 @@ public class PartyManager
     {        
         if (action != AttackActions.Nothing)
         {
-            if (action == turn.Current.Character.StandardAttack) return true;
-            if (action == turn.Current.Character.AdditionalStandardAttack) return true;
+            if (action == turn.Current.Character?.StandardAttack) return true;
+            if (action == turn.Current.Character?.AdditionalStandardAttack) return true;
         }
         return false;
     }
 
-    public event Action<TurnManager> GearEquipped;
+    public event Action<TurnManager>? GearEquipped;
 
     public void ManageEquipGear(TurnManager turn)
     {
         EquipGear(turn.Current.GearInventory[turn.Current.GearChoice], turn);
-        GearEquipped.Invoke(turn);
+        GearEquipped?.Invoke(turn);
         RemoveGearFromInventory(turn);
     }
 

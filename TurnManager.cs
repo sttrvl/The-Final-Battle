@@ -7,7 +7,6 @@ using TheFinalBattle.GameObjects.AttackModifiers;
 using TheFinalBattle.GameObjects.Items;
 using TheFinalBattle.GameObjects.Gear;
 using TheFinalBattle.GameObjects.Attacks;
-using System.IO;
 
 namespace TheFinalBattle.TurnSystem;
 
@@ -31,26 +30,26 @@ public class TurnManager
     public class CharacterInfo
     {
         public int CharacterNumber { get; set; } = 0;
-        public Character PlayerType { get; set; }
-        public Character Character { get; set; }
+        public Character? PlayerType { get; set; }
+        public Character? Character { get; set; }
 
         public List<Character> CharacterList { get; set; } = new List<Character>();
         public List<Consumables> ItemInventory { get; set; } = new List<Consumables>();
         public List<Gear?> GearInventory = new List<Gear?>();
 
         public int Target { get; private set; }
-        public AttackAction Attack { get; private set; }
+        public AttackAction? Attack { get; private set; }
         public int Damage { get; private set; }
 
         public double Probability { get; private set; }
         public int GearChoice { get; private set; }
-        public Consumables Consumable { get; private set; }
+        public Consumables? Consumable { get; private set; }
         public int ConsumableNumber { get; private set; }
         public int HealValue { get; private set; }
 
-        
-        public DefensiveAttackModifier TargetDefensiveModifier { get; private set; }
-        public OffensiveAttackModifier OffensiveModifier { get; private set; }
+
+        public DefensiveAttackModifier? TargetDefensiveModifier { get; private set; }
+        public OffensiveAttackModifier? OffensiveModifier { get; private set; }
 
         public void RemoveCharacter(Character character) => CharacterList.Remove(character);
         public void AddGear(Gear? gear) => GearInventory.Add(gear);
@@ -67,7 +66,7 @@ public class TurnManager
         public void SetConsumableNumber(int consumableNumber) => ConsumableNumber = consumableNumber;
         public void SetHealValue(int healValue) => HealValue = healValue;
         public void SetTargetDefensiveModifier(DefensiveAttackModifier modifier) => TargetDefensiveModifier = modifier;
-        public void SetOffensiveModifier(OffensiveAttackModifier modifier) => OffensiveModifier = modifier;
+        public void SetOffensiveModifier(OffensiveAttackModifier? modifier) => OffensiveModifier = modifier;
     }
 
     public void ClampCurrentDamage()
@@ -116,7 +115,7 @@ public class TurnManager
         party.AdditionalMonsterRound += NextBattle;
     }
 
-    public event Action<TurnManager> TurnSkipped;
+    public event Action<TurnManager>? TurnSkipped;
 
     public void SelectStartingPlayer(Character character) => Current.PlayerType = character;
 
@@ -140,7 +139,7 @@ public class TurnManager
                 TurnSkipped?.Invoke(this);
                 break;
         };
-        return (int)choice;
+        return (int)choice!;
     }
 
     public void ManageEffectsCharacterTurnEnd(PartyManager party)
@@ -201,7 +200,7 @@ public class TurnManager
 
     public void NextBattle() => Round.AddBattle();
 
-    public event Action<PartyManager> newRound;
+    public event Action<PartyManager>? newRound;
     public void CheckForNextRound(PartyManager party)
     {
         if (SameTurns(party)) Round.AddRound();
@@ -237,9 +236,9 @@ public class TurnManager
 
     public bool TargetHasOffensiveModifier() => Current.Character?.Armor?.OffensiveAttackModifier  != null ||                                                Current.Character?.Weapon?.OffensiveAttackModifier != null;
 
-    public bool AttackHasSideEffect() => Current.Attack.AttackSideEffect != null;
+    public bool AttackHasSideEffect() => Current.Attack?.AttackSideEffect != null;
 
-    public bool AttackHasTemporaryEffect() => Current.Attack.AttackTemporaryEffect != null;
+    public bool AttackHasTemporaryEffect() => Current.Attack?.AttackTemporaryEffect != null;
 
     public void CurrentPartyTurnData(PartyManager party)
     {
@@ -259,13 +258,13 @@ public class TurnManager
         UpdateCurrentGearInventory(party);
     }
 
-    public event Action<PartyManager> CharacterTurnEnd;
-    public event Action<PartyManager> PartyTurnEnd;
+    public event Action<PartyManager>? CharacterTurnEnd;
+    public event Action<PartyManager>? PartyTurnEnd;
     public void RunCurrentParty(PartyManager party, DisplayInformation info)
     {
         for (int index = 0; index < Current.CharacterList.Count; index++)
         {
-            newRound.Invoke(party);
+            newRound?.Invoke(party);
             Current.Character = Current.CharacterList[index];
             info.UpdateTurnDisplay(this, party);
             new InputManager().UserManager(this, party, info);
@@ -281,11 +280,11 @@ public class TurnManager
 
     private void CheckComputerDelay()
     {
-        if (Current.PlayerType is Computer) Thread.Sleep(1000);
+        if (Current.PlayerType is Computer) Thread.Sleep(0);
     }
 
-    public List<Character> TauntedCharacters = new List<Character>();
-    public event Action<TurnManager> TauntMessage;
+    public List<Character?> TauntedCharacters = new List<Character?>();
+    public event Action<TurnManager>? TauntMessage;
     public void ManageTaunt()
     {
         if (CheckTaunt())
@@ -309,21 +308,21 @@ public class TurnManager
     public void TransferSelectedCharacterWeapon(PartyManager party)
     {
         if (Current.GearInventory == party.HeroParty.GearInventory)
-            party.HeroParty.AddGear(Current.Character.Weapon!);
+            party.HeroParty.AddGear(Current.Character?.Weapon!);
         else
-            party.MonsterParty.AddGear(Current.Character.Weapon!);
+            party.MonsterParty.AddGear(Current.Character?.Weapon!);
     }
 
     public void TransferSelectedCharacterArmor(PartyManager party)
     {
         if (Current.GearInventory == party.HeroParty.GearInventory)
-            party.HeroParty.AddGear(Current.Character.Armor!);
+            party.HeroParty.AddGear(Current.Character?.Armor!);
         else
-            party.MonsterParty.AddGear(Current.Character.Armor!);
+            party.MonsterParty.AddGear(Current.Character?.Armor!);
     }
 
-    public bool SelectedCharacterHasEquippedWeapon() => Current.Character.Weapon is not null;
-    public bool SelectedCharacterHasEquippedArmor() => Current.Character.Armor is not null;
+    public bool SelectedCharacterHasEquippedWeapon() => Current.Character?.Weapon is not null;
+    public bool SelectedCharacterHasEquippedArmor() => Current.Character?.Armor is not null;
 
     public void UpdateCurrentGearInventory(PartyManager party) => Current.GearInventory = Current.CharacterList == 
             party.HeroParty.PartyList ? party.HeroParty.GearInventory : party.MonsterParty.GearInventory;
