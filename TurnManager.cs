@@ -280,7 +280,7 @@ public class TurnManager
 
     private void CheckComputerDelay()
     {
-        if (Current.PlayerType is Computer) Thread.Sleep(0);
+        if (Current.PlayerType is Computer) Thread.Sleep(1000);
     }
 
     public List<Character?> TauntedCharacters = new List<Character?>();
